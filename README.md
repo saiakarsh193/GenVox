@@ -20,3 +20,13 @@ Started on (26-03-23)
  - [ ] Torch Model
  - [ ] Trainer
  - [ ] Distributed
+
+### Explore
+- [ ] argparse
+- [ ] logging
+- [ ] pip standards (with docstrings)
+- [ ] aeneas
+- [ ] youtubedl
+- [ ] readme badges
+- [ ] config (yaml)
+- [ ] pip package (export)
