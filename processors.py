@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typeguard import typechecked
 
 from config import DatasetConfig
@@ -13,16 +15,23 @@ class DatasetProcessor:
     
     def __call__(self):
         print(self.config)
+        if (not os.path.isdir("dump")):
+            os.mkdir("dump")
         if (self.config.dataset_type == "text"):
+            f_text = open("dump/i2t", 'w')
             with open(self.config.transcript_path, 'r') as f:
                 raw_text = f.readlines()
-            text = {}
-            for rt in raw_text:
+            for rt in sorted(raw_text):
                 rt = rt.strip().split(self.config.delimiter)
                 uid = rt[self.config.uid_index]
                 utt = rt[self.config.utt_index]
-                print(uid, utt)
-                text[uid] = utt
+                f_text.write(f"{uid}\t{utt}\n")
+            f_text.close()
+
+            f_wav = open("dump/i2w", 'w')
+            for wav_path in sorted(Path(self.config.wavs_path).rglob("*.wav")):
+                f_wav.write(f"{wav_path.stem}\t{wav_path}\n")
+            f_wav.close()
 
 
 class AudioProcessor:

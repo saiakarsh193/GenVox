@@ -17,7 +17,7 @@ Read [devlog](dev_log.md) for more details.
   - [ ] Download
   - [ ] Create using Aeneas/WhisperX/YT_Transcript
 - [ ] Preparing Dataset (2 days)
-  - [ ] Format of text and path
+  - [x] Format of text and path
   - [ ] Format to wav and fs
   - [ ] Remove long/short
 - [ ] Preprocessing (3 days)

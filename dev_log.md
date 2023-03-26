@@ -47,6 +47,6 @@
   - `make_dataset.py` (dataset creating using raw audio, transcripts or youtube links)
   - `train_tts.py`
 > Idealogy: run code with config path
-- Added base_config, dataset_config (using [this](https://github.com/coqui-ai/TTS/blob/dev/TTS/utils/audio/processor.py) for value and docstring reference).
-- Added dataset_processor for text (should create LJSpeech small for experimentation and testing).
+- Added base_config, dataset_config (using [this](https://github.com/coqui-ai/TTS/blob/dev/TTS/utils/audio/processor.py) and [this](https://github.com/coqui-ai/TTS/blob/d309f50e53aaa4fa6fc540f98615f1963d61447f/TTS/config/shared_configs.py#L9) for value and docstring reference).
+- Added dataset_processor for making i2t and i2w (created LJSpeech_{small, sample} for experimentation and testing).
 - Writing entire runner script in `run.py` and will later divide it into individual components.
