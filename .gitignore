@@ -1,3 +1,8 @@
+data/
+
+
+#### below is gitignore template for python (github)
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

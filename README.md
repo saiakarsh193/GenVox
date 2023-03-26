@@ -25,9 +25,9 @@ Read [devlog](dev_log.md) for more details.
   - [ ] Features generation
 
 ### Phase 2
- - [ ] Torch Model
- - [ ] Trainer
- - [ ] Distributed
+- [ ] Torch Model
+- [ ] Trainer
+- [ ] Distributed
 
 ### Explore
 - [ ] argparse
