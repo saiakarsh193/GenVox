@@ -1,8 +1,16 @@
 # GenVox
 Pipeline for building TTS models using Tacotron2.
 
+## Usage
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 ## Development
-Started on (26-03-23)
+Started on (26-03-23)  
+Read [devlog](dev_log.md) for more details.  
 
 ### Phase 1 (1 week)
 - [ ] Getting Dataset (2 days)
