@@ -36,5 +36,5 @@ Read [devlog](dev_log.md) for more details.
 - [ ] aeneas
 - [ ] youtubedl
 - [ ] readme badges
-- [ ] config (yaml)
+- [x] config (yaml?)
 - [ ] pip package (export)
