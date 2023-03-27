@@ -1,8 +1,10 @@
 import os
+import tqdm
+import subprocess
 from pathlib import Path
 from typeguard import typechecked
 
-from config import DatasetConfig
+from config import DatasetConfig, AudioConfig
 
 
 class DatasetProcessor:
@@ -35,5 +37,19 @@ class DatasetProcessor:
 
 
 class AudioProcessor:
-    # for processing all the audio files
-    pass
+    """
+    for processing all the audio files
+    """
+    @typechecked
+    def __init__(self, config: AudioConfig):
+        self.config = config
+    
+    def __call__(self):
+        print(self.config)
+        assert os.path.isdir("dump"), "dump directory does not exist"
+        # ffmpeg -i data/LJSpeech_sample/wavs/LJ001-0154.wav -acodec pcm_u8 -ac 1 -ar 16000 temp.wav
+
+        with open("dump/i2w", 'r') as f:
+            i2w = f.readlines()
+        for wav_path in i2w:
+            print(wav_path)

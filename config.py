@@ -21,7 +21,7 @@ class BaseConfig:
 
 class DatasetConfig(BaseConfig):
     """
-    Config for extracting i2t, i2w given transcript path and wavs path
+    Config for DatasetProcessor
     """
     @typechecked
     def __init__(
@@ -46,7 +46,9 @@ class DatasetConfig(BaseConfig):
 
 
 class AudioConfig(BaseConfig):
-
+    """
+    Config for AudioProcessor
+    """
     @typechecked
     def __init__(
         self,

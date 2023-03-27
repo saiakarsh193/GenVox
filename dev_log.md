@@ -4,7 +4,8 @@
 - **{Rakesh}**
 
 ## Log Dates
-- [26-03-2020](#26-03-23)
+* [26-03-23](#26-03-23)
+* [27-03-23](#27-03-23)
 
 ### 26-03-23
 **{Akarsh}**
@@ -50,3 +51,13 @@
 - Added base_config, dataset_config (using [this](https://github.com/coqui-ai/TTS/blob/dev/TTS/utils/audio/processor.py) and [this](https://github.com/coqui-ai/TTS/blob/d309f50e53aaa4fa6fc540f98615f1963d61447f/TTS/config/shared_configs.py#L9) for value and docstring reference).
 - Added dataset_processor for making i2t and i2w (created LJSpeech_{small, sample} for experimentation and testing).
 - Writing entire runner script in `run.py` and will later divide it into individual components.
+
+
+### 27-03-23
+**{Akarsh}**
+- Using coqui for coding format, espnet for data format and [NVIDIA](https://github.com/NVIDIA/tacotron2/) for model code.
+- We are using `nn.ModuleList` instead of `list` because `model.parameters()` wont have the necessary parameters as it cannot read a regular python list ([source](https://discuss.pytorch.org/t/the-difference-in-usage-between-nn-modulelist-and-python-list/7744)).
+- squeeze and unsqueeze in torch tensor ([source](https://www.geeksforgeeks.org/how-to-squeeze-and-unsqueeze-a-tensor-in-pytorch/)).
+- Assumption: single speaker, single language, single GPU (not distributed).
+- For distributed read about: workers, jobs, nodes, tasks.
+- collate: "collect and combine (texts, information, or data)" ([source](https://plainenglish.io/blog/understanding-collate-fn-in-pytorch-f9d1742647d3), [CREPE-ref](https://github.com/KawshikManikantan/CREPE/blob/main/Code/lstm_base.ipynb))
