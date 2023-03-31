@@ -4,8 +4,11 @@
 - **{Rakesh}**
 
 ## Log Dates
-* [26-03-23](#26-03-23)
-* [27-03-23](#27-03-23)
+<!-- no toc -->
+- [26-03-23](#26-03-23)
+- [27-03-23](#27-03-23)
+- [28-03-23](#28-03-23)
+- [29-03-23](#29-03-23)
 
 ### 26-03-23
 **{Akarsh}**
@@ -61,6 +64,7 @@
 - Assumption: single speaker, single language, single GPU (not distributed).
 - For distributed read about: workers, jobs, nodes, tasks.
 - collate: "collect and combine (texts, information, or data)" ([source](https://plainenglish.io/blog/understanding-collate-fn-in-pytorch-f9d1742647d3), [CREPE-ref](https://github.com/KawshikManikantan/CREPE/blob/main/Code/lstm_base.ipynb))
+- MUST-C dataset ([source](https://ict.fbk.eu/must-c-releases/))
 
 **{Rakesh}**
 - Using youtube-dl to download the audio (wav) and transcript(.vtt file) of the audio file. (used pip install 'git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl' as there was a change in youtube metadata)
@@ -68,6 +72,11 @@
 - The audio is split into smaller segments by using the timestamps in vtt file and output wav files into a directory
 
 ### 28-03-23
+**{Akarsh}**
+- `self.training` in `nn.Module` is explained here ([source](https://github.com/google/objax/issues/29)).
+- Gate Prediction is basically stop token prediction. It is used to stop inference in decoding stage ([source](https://github.com/NVIDIA/tacotron2/blob/master/model.py#L378)).
+- To prevent `Markdown All in One` from auto creating `Table of Contents`, add a `<!-- no toc -->` comment above the list.
+- `subprocess` in python to handle `bash` commands ([source](https://docs.python.org/3/library/subprocess.html)).
 
 **{Rakesh}**
 - Input is taken to format the naming of the wav files to particular id and the padding the file number to match number of digits using rjust
@@ -75,6 +84,7 @@
 - Trim silence of left and right ends of the audio segment by using a silence threshold ([ref](https://stackoverflow.com/questions/29547218/remove-silence-at-the-beginning-and-at-the-end-of-wave-files-with-pydub))
 
 ### 29-03-23
+**{Akarsh}**
 
 **{Rakesh}**
 - Learn STFT and Mel Spectrogram
