@@ -61,3 +61,21 @@
 - Assumption: single speaker, single language, single GPU (not distributed).
 - For distributed read about: workers, jobs, nodes, tasks.
 - collate: "collect and combine (texts, information, or data)" ([source](https://plainenglish.io/blog/understanding-collate-fn-in-pytorch-f9d1742647d3), [CREPE-ref](https://github.com/KawshikManikantan/CREPE/blob/main/Code/lstm_base.ipynb))
+
+**{Rakesh}**
+- Using youtube-dl to download the audio (wav) and transcript(.vtt file) of the audio file. (used pip install 'git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl' as there was a change in youtube metadata)
+- Converted the data in vtt file into csv file formatting similar to the LJSpeech dataset format.
+- The audio is split into smaller segments by using the timestamps in vtt file and output wav files into a directory
+
+### 28-03-23
+
+**{Rakesh}**
+- Input is taken to format the naming of the wav files to particular id and the padding the file number to match number of digits using rjust
+- Same id format for the id in csv file
+- Trim silence of left and right ends of the audio segment by using a silence threshold ([ref](https://stackoverflow.com/questions/29547218/remove-silence-at-the-beginning-and-at-the-end-of-wave-files-with-pydub))
+
+### 29-03-23
+
+**{Rakesh}**
+- Learn STFT and Mel Spectrogram
+- Understand process in the code ([NVIDIA stft](https://github.com/NVIDIA/tacotron2/blob/master/stft.py), [NVIDIA train](https://github.com/NVIDIA/tacotron2/blob/master/train.py))
