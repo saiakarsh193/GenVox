@@ -1,14 +1,26 @@
 import os
 
-from config import DatasetConfig, AudioConfig
-from processors import DatasetProcessor, AudioProcessor
+from config import DownloadConfig, DatasetConfig, AudioConfig
+from processors import DownloadProcessor, DatasetProcessor, AudioProcessor
 
+# dataset_path = "data/LJSpeech_sample"
+dataset_path = "data/youtube_3b1b"
 
-dataset_path = "data/LJSpeech_sample"
+download_config = DownloadConfig(
+    is_youtube=True,
+    youtube_link="https://www.youtube.com/watch?v=fRed0Xmc2Wg",
+    directory_path=dataset_path,
+    create_directory=True,
+    speaker_id="3B1B"
+)
+
+download_processor = DownloadProcessor(download_config)
+download_processor()
 
 dataset_config = DatasetConfig(
     delimiter="|",
-    transcript_path=os.path.join(dataset_path, "metadata.csv"),
+    transcript_path=os.path.join(dataset_path, "transcript.txt"),
+    # transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs")
 )
 

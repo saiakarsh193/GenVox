@@ -1,4 +1,5 @@
-import youtube_dl
+import random
+import yt_dlp
 
 def downloadYTmp3(link, target):
     # download options for youtube_dl
@@ -12,8 +13,8 @@ def downloadYTmp3(link, target):
         'outtmpl': target,
         'writesubtitles' : target,
     }
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([link])
 
-if __name__ == "__main__":
-    downloadYTmp3("https://www.youtube.com/watch?v=fRed0Xmc2Wg","output.wav")
+def getRandomHexName(size=60):
+    return hex(random.getrandbits(size))[2: ]

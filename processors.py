@@ -1,10 +1,44 @@
 import os
 import tqdm
 import subprocess
+import shutil
 from pathlib import Path
 from typeguard import typechecked
 
-from config import DatasetConfig, AudioConfig
+from config import DownloadConfig, DatasetConfig, AudioConfig
+from utils import getRandomHexName
+from create_dataset import createDatasetFromYoutube
+
+
+class DownloadProcessor:
+    """
+    For downloading or preparing dataset
+    """
+    @typechecked
+    def __init__(self, config: DownloadConfig):
+        self.config = config
+    
+    def __call__(self):
+        print(self.config)
+        if (self.config.is_youtube):
+            temp_directory_path = os.path.join(self.config.directory_path, f"temp_{getRandomHexName()}")
+            os.mkdir(temp_directory_path)
+            createDatasetFromYoutube(self.config.youtube_link, self.config.directory_path, temp_directory_path, self.config.speaker_id)
+            shutil.rmtree(temp_directory_path)
+        else:
+            command = ["wget", self.config.download_link, "-P", self.config.directory_path]
+            print("running subprocess command: {comm}".format(comm=" ".join(command)))
+            subprocess.run(command, capture_output=(not self.config.verbose))
+            file_path = os.path.join(self.config.directory_path, os.path.basename(self.config.download_link))
+            file_ext = os.path.splitext(file_path)[1]
+            if (file_ext == ".zip"):
+                command = ["unzip", ]
+            elif (file_ext == ".tar"):
+                command = ["tar"]
+            else:
+                raise ValueError(f"file_extension ({file_ext}) is not supported for extraction")
+            # print("running subprocess command: {comm}".format(comm=" ".join(command)))
+            # subprocess.run(command, capture_output=(not self.config.verbose))
 
 
 class DatasetProcessor:
