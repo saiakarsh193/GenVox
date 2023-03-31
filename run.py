@@ -26,7 +26,9 @@ dataset_config = DatasetConfig(
 
 audio_config = AudioConfig(
     sampling_rate=16000,
-    trim_silence=False
+    trim_silence=False,
+    min_wav_duration=2,
+    max_wav_duration=10
 )
 
 dataset_processor = DatasetProcessor(dataset_config)

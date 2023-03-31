@@ -18,3 +18,15 @@ def downloadYTmp3(link, target):
 
 def getRandomHexName(size=60):
     return hex(random.getrandbits(size))[2: ]
+
+def secToFormattedTime(seconds):
+    seconds = int(seconds)
+    minutes = int(seconds / 60)
+    hours = int(minutes / 60)
+    days = int(hours / 24)
+    seconds -= minutes * 60
+    minutes -= hours * 60
+    hours -= days * 24
+    if (hours > 0):
+        return f"{days}-{hours}:{minutes}:{seconds}"
+    return f"{hours}:{minutes}:{seconds}"

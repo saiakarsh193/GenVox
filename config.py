@@ -3,11 +3,11 @@ from typeguard import typechecked
 
 def check_argument(name, value, min_val=None, max_val=None):
     if (min_val == None):
-        assert (value <= max_val), f"The value \'{name}\' ({value}) is above max_val [{max_val}]."
+        assert (value <= max_val), f"The value \'{name}\' ({value}) is above max_val ({max_val})."
     elif (max_val == None):
-        assert (value >= min_val), f"The value \'{name}\' ({value}) is below min_val [{min_val}]"
+        assert (value >= min_val), f"The value \'{name}\' ({value}) is below min_val ({min_val})"
     else:
-        assert (value >= min_val and value <= max_val), f"The value \'{name}\' ({value}) is not in the required range [{min_val} -> {max_val}]."
+        assert (value >= min_val and value <= max_val), f"The value \'{name}\' ({value}) is not in the required range ({min_val} -> {max_val})."
 
 
 class BaseConfig:
@@ -90,15 +90,16 @@ class AudioConfig(BaseConfig):
         self,
         sampling_rate: int = 22050,
         trim_silence: bool = True,
-        trim_db: float = 50.0
+        trim_db: float = 50.0,
+        min_wav_duration: float = 0.5,
+        max_wav_duration: float = 10
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence
         self.trim_db = trim_db
+        self.min_wav_duration = min_wav_duration
+        self.max_wav_duration = max_wav_duration
 
         check_argument("sampling_rate", self.sampling_rate, min_val=512, max_val=22050)
-
-
-if __name__ == "__main__":
-    # DownloadConfig(download_link="jd", directory_path=os.path.abspath("."))
-    DownloadConfig(download_link="jd", directory_path="./dump")
+        check_argument("min_wav_duration", self.min_wav_duration, min_val=0)
+        check_argument("max_wav_duration", self.max_wav_duration, min_val=self.min_wav_duration)

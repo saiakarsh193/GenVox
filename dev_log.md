@@ -9,6 +9,7 @@
 - [27-03-23](#27-03-23)
 - [28-03-23](#28-03-23)
 - [29-03-23](#29-03-23)
+- [30-03-23](#30-03-23)
 
 ### 26-03-23
 **{Akarsh}**
@@ -67,9 +68,10 @@
 - MUST-C dataset ([source](https://ict.fbk.eu/must-c-releases/))
 
 **{Rakesh}**
-- Using youtube-dl to download the audio (wav) and transcript(.vtt file) of the audio file. (used pip install 'git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl' as there was a change in youtube metadata)
+- Using youtube-dl to download the audio (wav) and transcript(.vtt file) of the audio file. (used `pip install git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl` as there was a change in youtube metadata)
 - Converted the data in vtt file into csv file formatting similar to the LJSpeech dataset format.
-- The audio is split into smaller segments by using the timestamps in vtt file and output wav files into a directory
+- The audio is split into smaller segments by using the timestamps in vtt file and output wav files into a directory.
+
 
 ### 28-03-23
 **{Akarsh}**
@@ -83,9 +85,22 @@
 - Same id format for the id in csv file
 - Trim silence of left and right ends of the audio segment by using a silence threshold ([ref](https://stackoverflow.com/questions/29547218/remove-silence-at-the-beginning-and-at-the-end-of-wave-files-with-pydub))
 
+
 ### 29-03-23
 **{Akarsh}**
 
 **{Rakesh}**
 - Learn STFT and Mel Spectrogram
 - Understand process in the code ([NVIDIA stft](https://github.com/NVIDIA/tacotron2/blob/master/stft.py), [NVIDIA train](https://github.com/NVIDIA/tacotron2/blob/master/train.py))
+
+
+### 30-03-23
+**{Akarsh}**
+- Added `DownloadConfig` and `DownloadProcessor`.
+- Added extraction support and changed pipeline -> `i2at, i2aw` contain all values before processing and `i2t, i2w` contain only the values that are valid.
+- Added wav dump creation with length filtering and sampling rate modification (and bitrate) in `dump/wavs/` directory.
+- **NOTE:** Need to add `trimAudio` for the wavs before checking the length before filtering.
+- `i2w` format -> `<utt_id> <wav_path> <wav_shape>`.
+- You can now download `wav` and `vtt` files from Youtube (`yt_dlp`) and use the alignment to segment the audio file into `wavs/` directory and also choose a `speaker_id` for `utt_id`. Then we can prepare `transcript.txt` using standard delimiter `|` and finally we have a dataset.
+- Added `secToFormattedTime` in `utils` for printing time from seconds to a standard format.
+- Check `trimAudio` in general and format `create_dataset`.
