@@ -6,6 +6,8 @@ Pipeline for building TTS models using Tacotron2.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+python3 run.py
 ```
 
 ## Development
@@ -13,13 +15,14 @@ Started on (26-03-23)
 Read [devlog](dev_log.md) for more details.  
 
 ### Phase 1 (1 week)
-- [ ] Getting Dataset (2 days)
-  - [ ] Download
-  - [ ] Create using Aeneas/WhisperX/YT_Transcript
-- [ ] Preparing Dataset (2 days)
+- [x] Getting Dataset (2 days)
+  - [x] Download
+  - [x] Create using YT_Transcript
+  - [ ] Create using Aeneas/WhisperX
+- [x] Preparing Dataset (2 days)
   - [x] Format of text and path
-  - [ ] Format to wav and fs
-  - [ ] Remove long/short
+  - [x] Format to wav and fs
+  - [x] Remove long/short
 - [ ] Preprocessing (3 days)
   - [ ] Tokens/Vocab generation
   - [ ] Features generation
@@ -34,7 +37,7 @@ Read [devlog](dev_log.md) for more details.
 - [ ] logging
 - [ ] pip standards (with docstrings)
 - [ ] aeneas
-- [ ] youtubedl
+- [x] youtubedl
 - [ ] readme badges
 - [x] config (yaml?)
 - [ ] pip package (export)
