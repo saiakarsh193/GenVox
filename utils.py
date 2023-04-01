@@ -10,13 +10,21 @@ def downloadYTmp3(link, target):
             'preferredcodec': 'wav',
             'preferredquality': '192',
         }],
+        'quiet': 'quiet',
         'outtmpl': target,
         'writesubtitles' : target,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([link])
 
-def getRandomHexName(size=60):
+def is_youtube_link(link):
+    if "youtube.com/watch?v=" in link:
+        return True
+    elif "youtu.be/" in link:
+        return True
+    return False
+
+def getRandomHexName(size = 60):
     return hex(random.getrandbits(size))[2: ]
 
 def secToFormattedTime(seconds):

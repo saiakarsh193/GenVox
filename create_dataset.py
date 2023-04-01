@@ -10,46 +10,32 @@ def parse_timestamp(timestamp):
     hours, minutes, seconds, milliseconds = map(int, parts)
     return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
 
-def parse_vtt(vtt_file):
-    with open(vtt_file, 'r') as f:
-        lines = f.readlines()
-        lines = [x.strip() for x in lines if x.strip() != '']
-        timestamp_lines = [x for x in lines if re.match(r'^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}$', x)]
-        timestamps = [re.split(' --> ', x) for x in timestamp_lines]
-        timestamps = [(parse_timestamp(x[0]), parse_timestamp(x[1])) for x in timestamps]
-        texts = []
-        for i, x in enumerate(lines):
-            if re.match(r'^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}$', x):
-                texts.append(lines[i + 1])
-        return timestamps, texts
-
-def vtt_to_csv(vtt_file, csv_file, timestamps, sid):
+def vtt_to_csv(vtt_file, csv_file, speaker_id):
     with open(vtt_file, 'r') as vtt, open(csv_file, 'w') as csv:
-        current_id = ''
-        current_text = ''
-        count=0
-        for i in timestamps:
-            count+=1
-        i=-1
-        for line in vtt:
-            # Timestamp format "00:00:00.000 --> 00:00:00.000"
-            if re.match('\d\d:\d\d:\d\d.\d\d\d --> \d\d:\d\d:\d\d.\d\d\d', line):
-                index = str(i + 1).rjust(len(str(count)),'0')
-                i+=1
-                if current_id:
-                    csv.write(f"{sid}_{index}|{current_text.strip()}\n")
-                current_id = re.findall('\d\d:\d\d:\d\d.\d\d\d --> \d\d:\d\d:\d\d.\d\d\d', line)[0]
-                current_text = ''
+        lines = vtt.readlines()
+        lines = [x.strip() for x in lines if x.strip() != '']
+        timestamps = []
+        texts = []
+        i = 0
+        while i < len(lines):
+            # Check if the line is a timestamp line
+            if '-->' in lines[i]:
+                start_time, end_time = lines[i].split(' --> ')
+                timestamps.append((parse_timestamp(start_time), parse_timestamp(end_time)))
+                texts.append(lines[i + 1])
+                i += 2  # Skip the next line which contains the text
             else:
-                current_text += line.strip() + ' '
-        if current_id:
-            index = str(i + 1).rjust(len(str(count)),'0')
-            csv.write(f"{sid}_{index}|{current_text.strip()}\n")
+                i += 1
+        count = len(texts)
+        for i in range(count):
+            index = str(i + 1).rjust(len(str(count)), '0')
+            csv.write(f"{speaker_id}_{index}|{texts[i].strip()}\n")
+    return timestamps
 
-def trimSilence(path, outpath, silence_threshold=-50.0, chunk_size=10, sampling_rate=22050):
+def trimSilence(path, outpath, silence_threshold = -50.0, chunk_size = 10, sampling_rate = 22050):
     assert chunk_size > 0
     subprocess.run(["ffmpeg", "-i", path, "-ar", str(sampling_rate), outpath], capture_output=True)
-    sound = AudioSegment.from_file(outpath, format="wav")
+    sound = AudioSegment.from_file(outpath, format = "wav")
     trimmed_sound = sound
     duration = len(sound)
     ltrim_ms = 0
@@ -60,21 +46,19 @@ def trimSilence(path, outpath, silence_threshold=-50.0, chunk_size=10, sampling_
     while rsound[rtrim_ms: rtrim_ms + chunk_size].dBFS < silence_threshold and rtrim_ms < duration:
         rtrim_ms += chunk_size
     trimmed_sound = sound[ltrim_ms: duration - rtrim_ms]
-    trimmed_sound.export(outpath, format="wav")
+    trimmed_sound.export(outpath, format = "wav")                   
 
-def split_wav_file(wav_file, timestamps, out_dir, sid):
-    # Split the WAV file into segments based on timestamps
+def split_wav_file(wav_file, timestamps, directory_path, speaker_id):
+    # Split the wav file into segments based on timestamps
     fs, data = scipy.io.wavfile.read(wav_file + ".wav")
-    count = 0
-    for i in timestamps:
-        count += 1
-    out_dir = os.path.join(out_dir, "wavs")
-    os.mkdir(out_dir)
+    count = len(timestamps)
+    directory_path = os.path.join(directory_path, "wavs")
+    os.mkdir(directory_path)
     for ind, (start_time, end_time) in enumerate(timestamps):
         segment = data[int(start_time * fs): int(end_time * fs)]
         index = str(ind + 1).rjust(len(str(count)), "0")
-        out_path = os.path.join(out_dir, f"z{sid}_{index}.wav")
-        trim_out_path = os.path.join(out_dir, f"{sid}_{index}.wav")
+        out_path = os.path.join(directory_path, f"z{speaker_id}_{index}.wav")
+        trim_out_path = os.path.join(directory_path, f"{speaker_id}_{index}.wav")
         scipy.io.wavfile.write(out_path, fs, segment)
         trimSilence(out_path, trim_out_path)
         os.remove(out_path)
@@ -84,8 +68,7 @@ def createDatasetFromYoutube(link, directory_path, temp_directory_path, speaker_
     vtt_file = os.path.join(temp_directory_path, "output.en.vtt")
     csv_file = os.path.join(directory_path, "transcript.txt")
     downloadYTmp3(link, wav_file)
-    timestamps, texts = parse_vtt(vtt_file)
-    vtt_to_csv(vtt_file, csv_file, timestamps, speaker_id)
+    timestamps = vtt_to_csv(vtt_file, csv_file, speaker_id)
     split_wav_file(wav_file, timestamps, directory_path, speaker_id)
 
 
