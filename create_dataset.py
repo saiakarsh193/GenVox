@@ -27,7 +27,6 @@ def vtt_to_csv(vtt_file, csv_file, speaker_id):
             else:
                 i += 1
         count = len(texts)
-        print(texts)
         for i in range(count):
             index = str(i + 1).rjust(len(str(count)), '0')
             csv.write(f"{speaker_id}_{index}|{texts[i].strip()}\n")
