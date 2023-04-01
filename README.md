@@ -3,9 +3,16 @@ Pipeline for building TTS models using Tacotron2.
 
 ## Usage
 ```bash
-conda create --prefix ./ttsenv
+# for CPU torch installation
+conda create --prefix ./ttsenv pytorch -c pytorch
+
+# for GPU torch installation
+conda create --prefix ./ttsenv pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+
+# activate environment
 conda activate ./ttsenv
-conda install pip
+
+# for other requirements
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
 
 python3 run.py

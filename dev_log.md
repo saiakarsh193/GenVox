@@ -111,3 +111,4 @@
 - Added own code for `trim_audio_silence` and removed `pydub` dependency.
 - References for calculating dBFS: ([wiki](https://en.wikipedia.org/wiki/DBFS), [src](https://audiointerfacing.com/dbfs-in-audio/), and ChatGPT).
 - Changed `None` for default value `str` type. (`typeguard` gives issues for different versions).
+- Fix global pip installation issue ([src](https://stackoverflow.com/questions/44552507/conda-environment-pip-is-trying-to-install-dependencies-globally)). **Not able to fix!**
