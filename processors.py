@@ -7,7 +7,7 @@ from pathlib import Path
 from typeguard import typechecked
 
 from config import DownloadConfig, DatasetConfig, AudioConfig
-from utils import getRandomHexName, secToFormattedTime
+from utils import get_random_HEX_name, sec_to_formatted_time
 from create_dataset import createDatasetFromYoutube
 
 
@@ -22,9 +22,9 @@ class DownloadProcessor:
     def __call__(self):
         print(self.config)
         if (self.config.is_youtube):
-            temp_directory_path = os.path.join(self.config.directory_path, f"temp_{getRandomHexName()}")
+            temp_directory_path = os.path.join(self.config.directory_path, f"temp_{get_random_HEX_name()}")
             os.mkdir(temp_directory_path)
-            createDatasetFromYoutube(self.config.youtube_link, self.config.directory_path, temp_directory_path, self.config.speaker_id)
+            createDatasetFromYoutube(self.config.youtube_link, self.config.directory_path, temp_directory_path, self.config.speaker_id, self.config.verbose)
             shutil.rmtree(temp_directory_path)
         else:
             command = ["wget", self.config.download_link, "-P", self.config.directory_path]
@@ -122,7 +122,7 @@ class AudioProcessor:
             valid_ids[utt_id]["wav_shape"] = wav.shape[0]
             valid_ids[utt_id]["wav_length"] = wav.shape[0] / fs
 
-        print(f"removed long and short wav files -> before: {total_count} ({secToFormattedTime(total_length)}) after: {valid_count} ({secToFormattedTime(valid_length)}) removed: {total_count - valid_count} ({secToFormattedTime(total_length - valid_length)})")
+        print(f"removed long and short wav files -> before: {total_count} ({sec_to_formatted_time(total_length)}) after: {valid_count} ({sec_to_formatted_time(valid_length)}) removed: {total_count - valid_count} ({sec_to_formatted_time(total_length - valid_length)})")
 
         with open("dump/i2t", 'w') as f_text, open("dump/i2w", 'w') as f_wav:
             for utt_id, values in valid_ids.items():

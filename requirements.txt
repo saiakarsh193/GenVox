@@ -2,4 +2,4 @@ typeguard
 tqdm
 yt_dlp
 scipy
-pydub
+matplotlib

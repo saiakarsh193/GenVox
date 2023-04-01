@@ -104,3 +104,10 @@
 - You can now download `wav` and `vtt` files from Youtube (`yt_dlp`) and use the alignment to segment the audio file into `wavs/` directory and also choose a `speaker_id` for `utt_id`. Then we can prepare `transcript.txt` using standard delimiter `|` and finally we have a dataset.
 - Added `secToFormattedTime` in `utils` for printing time from seconds to a standard format.
 - Check `trimAudio` in general and format `create_dataset`.
+
+
+### 01-04-23
+**{Akarsh}**
+- Added own code for `trim_audio_silence` and removed `pydub` dependency.
+- References for calculating dBFS: ([wiki](https://en.wikipedia.org/wiki/DBFS), [src](https://audiointerfacing.com/dbfs-in-audio/), and ChatGPT).
+- Changed `None` for default value `str` type. (`typeguard` gives issues for different versions).

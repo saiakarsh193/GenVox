@@ -3,9 +3,10 @@ Pipeline for building TTS models using Tacotron2.
 
 ## Usage
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+conda create --prefix ./ttsenv
+conda activate ./ttsenv
+conda install pip
+./ttsenv/bin/python3 -m pip install -r requirements.txt
 
 python3 run.py
 ```

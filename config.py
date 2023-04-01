@@ -25,12 +25,12 @@ class DownloadConfig(BaseConfig):
     @typechecked
     def __init__(
         self,
-        download_link: str = None,
+        download_link: str = "",
         is_youtube: bool = False,
-        youtube_link: str = None,
-        speaker_id: str = None,
+        youtube_link: str = "",
+        speaker_id: str = "",
         create_directory: bool = False,
-        directory_path: str = None,
+        directory_path: str = "",
         verbose: bool = True
     ):
         self.download_link = download_link
@@ -65,8 +65,8 @@ class DatasetConfig(BaseConfig):
         delimiter = " ",
         uid_index: int = 0,
         utt_index: int = 1,
-        transcript_path: str = None,
-        wavs_path: str = None
+        transcript_path: str = "",
+        wavs_path: str = ""
     ):
         self.dataset_type = dataset_type
         self.delimiter = delimiter
@@ -90,16 +90,18 @@ class AudioConfig(BaseConfig):
         self,
         sampling_rate: int = 22050,
         trim_silence: bool = True,
-        trim_db: float = 50.0,
+        trim_dbfs: float = -50.0,
         min_wav_duration: float = 0.5,
         max_wav_duration: float = 10
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence
-        self.trim_db = trim_db
+        # decibels relative to full scale
+        self.trim_dbfs = trim_dbfs
         self.min_wav_duration = min_wav_duration
         self.max_wav_duration = max_wav_duration
 
         check_argument("sampling_rate", self.sampling_rate, min_val=512, max_val=22050)
+        check_argument("trim_dbfs", self.trim_dbfs, min_val=-100, max_val=0)
         check_argument("min_wav_duration", self.min_wav_duration, min_val=0)
         check_argument("max_wav_duration", self.max_wav_duration, min_val=self.min_wav_duration)
