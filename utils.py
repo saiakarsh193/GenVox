@@ -1,6 +1,7 @@
 import random
 import yt_dlp
 import scipy.io
+import json
 import numpy as np
 
 def download_YT_mp3(link, target, verbose=False):
@@ -75,3 +76,12 @@ def sec_to_formatted_time(seconds):
     if (hours > 0):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
+
+def dump_json(path, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def load_json(path):
+    with open(path, 'r') as f:
+        data = json.load(f)
+    return data

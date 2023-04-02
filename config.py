@@ -11,11 +11,18 @@ def check_argument(name, value, min_val=None, max_val=None):
 
 
 class BaseConfig:
-    def __repr__(self):
-        rstr = self.__class__.__name__ + "\n"
+    def __str__(self, level=0):
+        rstr = ("    " * level) + self.__class__.__name__ + "\n"
         for key, value in iter(self.__dict__.items()):
-            rstr += "└── " + key.ljust(20) + ":\t" + str(value) + "\n"
-        return rstr.strip()
+            if (isinstance(value, BaseConfig)):
+                svalue = "\n" + BaseConfig.__str__(value, level=level + 1)
+            else:
+                svalue = "(" + str(value) + ")"
+            rstr += ("    " * level) + "└── " + key.ljust(20) + svalue + "\n"
+        return rstr.rstrip()
+    
+    def __repr__(self):
+        return str(self)
 
 
 class DownloadConfig(BaseConfig):
@@ -54,31 +61,13 @@ class DownloadConfig(BaseConfig):
             assert os.path.isdir(self.directory_path), f"directory_path ({self.directory_path}) does not exist"
 
 
-class DatasetConfig(BaseConfig):
+class TextConfig(BaseConfig):
     """
-    Config for DatasetProcessor
+    Config for TextProcessor
     """
     @typechecked
-    def __init__(
-        self,
-        dataset_type = "text",
-        delimiter = " ",
-        uid_index: int = 0,
-        utt_index: int = 1,
-        transcript_path: str = "",
-        wavs_path: str = ""
-    ):
-        self.dataset_type = dataset_type
-        self.delimiter = delimiter
-        self.uid_index = uid_index
-        self.utt_index = utt_index
-        self.transcript_path = transcript_path
-        self.wavs_path = wavs_path
-
-        assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
-        check_argument("uid_index", self.uid_index, min_val=0)
-        check_argument("utt_index", self.utt_index, min_val=0)
-        assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
+    def __init__(self):
+        pass
 
 
 class AudioConfig(BaseConfig):
@@ -96,12 +85,42 @@ class AudioConfig(BaseConfig):
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence
-        # decibels relative to full scale
-        self.trim_dbfs = trim_dbfs
+        self.trim_dbfs = trim_dbfs # decibels relative to full scale
         self.min_wav_duration = min_wav_duration
         self.max_wav_duration = max_wav_duration
 
-        check_argument("sampling_rate", self.sampling_rate, min_val=512, max_val=22050)
+        check_argument("sampling_rate", self.sampling_rate, min_val=16000, max_val=44100)
         check_argument("trim_dbfs", self.trim_dbfs, min_val=-100, max_val=0)
-        check_argument("min_wav_duration", self.min_wav_duration, min_val=0)
+        check_argument("min_wav_duration", self.min_wav_duration, min_val=0.1)
         check_argument("max_wav_duration", self.max_wav_duration, min_val=self.min_wav_duration)
+
+
+class DatasetConfig(BaseConfig):
+    """
+    Config for DatasetProcessor
+    """
+    @typechecked
+    def __init__(
+        self,
+        text_config: TextConfig,
+        audio_config: AudioConfig,
+        dataset_type = "text",
+        delimiter = " ",
+        uid_index: int = 0,
+        utt_index: int = 1,
+        transcript_path: str = "",
+        wavs_path: str = "",
+    ):
+        self.text_config = text_config
+        self.audio_config = audio_config
+        self.dataset_type = dataset_type
+        self.delimiter = delimiter
+        self.uid_index = uid_index
+        self.utt_index = utt_index
+        self.transcript_path = transcript_path
+        self.wavs_path = wavs_path
+
+        assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
+        check_argument("uid_index", self.uid_index, min_val=0)
+        check_argument("utt_index", self.utt_index, min_val=0)
+        assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"

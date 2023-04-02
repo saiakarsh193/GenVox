@@ -112,3 +112,13 @@
 - References for calculating dBFS: ([wiki](https://en.wikipedia.org/wiki/DBFS), [src](https://audiointerfacing.com/dbfs-in-audio/), and ChatGPT).
 - Changed `None` for default value `str` type. (`typeguard` gives issues for different versions).
 - Fix global pip installation issue ([src](https://stackoverflow.com/questions/44552507/conda-environment-pip-is-trying-to-install-dependencies-globally)). **Not able to fix!**
+- **Fixed** global pip installation issue. The issue arises because the machine has both `pip3` and `conda` installed. So when we do `/path/to/conda/env/python3 -m pip list` with python already installed in the env, it is looking for the normal pip installation. Hence the simplest solution would be to just remove the `pip3` installation and then `conda` will only look in its own envs for pip.
+
+
+### 02-04-23
+**{Akarsh}**
+- Changed the pipeline.
+  - `DatasetProcessor` takes in `AudioConfig` and `TextConfig` and handles preprocessing using `TextProcessor` and `AudioProcessor` inside it.
+- **NOTE:** Need to add code for handling multi channel wav audio files (convert to single channel before checking for silence).
+- Added simple text tokenization and updated them with calculated index.
+- We also need to <SOS/EOS>, <UNK> tokens too along with some standard tokenizers and cleaners.
