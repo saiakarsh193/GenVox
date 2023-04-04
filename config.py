@@ -1,6 +1,8 @@
 import os
 from typeguard import typechecked
 
+from utils import dump_json, load_json
+
 def check_argument(name, value, min_val=None, max_val=None):
     if (min_val == None):
         assert (value <= max_val), f"The value \'{name}\' ({value}) is above max_val ({max_val})."
@@ -124,3 +126,26 @@ class DatasetConfig(BaseConfig):
         check_argument("uid_index", self.uid_index, min_val=0)
         check_argument("utt_index", self.utt_index, min_val=0)
         assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
+
+
+def load_config_from_file(path):
+    config_json = load_json(path)
+    text_config = TextConfig(**config_json['text_config'])
+    del config_json['text_config']
+    audio_config = AudioConfig(**config_json['audio_config'])
+    del config_json['audio_config']
+    dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json)
+    return text_config, audio_config, dataset_config
+
+def get_json_from_config(config):
+    config_json = {}
+    for attr, value in vars(config).items():
+        if isinstance(value, BaseConfig):
+            value = get_json_from_config(value)
+        config_json[attr] = value
+    return config_json
+
+@typechecked
+def write_file_from_config(config: DatasetConfig, path):
+    config_json = get_json_from_config(config)
+    dump_json(path, config_json)

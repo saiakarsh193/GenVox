@@ -1,9 +1,9 @@
 import os
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
+from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, write_file_from_config
 from processors import DownloadProcessor, DatasetProcessor
 
-dataset_path = "data/LJSpeech_sample"
+dataset_path = "data/LJSpeech_test"
 # dataset_path = "data/youtube_3b1b"
 
 # download_config = DownloadConfig(
@@ -35,6 +35,8 @@ dataset_config = DatasetConfig(
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
 )
+
+# write_file_from_config(dataset_config, 'config.json')
 
 dataset_processor = DatasetProcessor(dataset_config)
 dataset_processor()

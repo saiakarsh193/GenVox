@@ -73,7 +73,7 @@ def sec_to_formatted_time(seconds):
     seconds -= minutes * 60
     minutes -= hours * 60
     hours -= days * 24
-    if (hours > 0):
+    if (days > 0):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
 

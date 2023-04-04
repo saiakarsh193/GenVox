@@ -122,3 +122,4 @@
 - **NOTE:** Need to add code for handling multi channel wav audio files (convert to single channel before checking for silence).
 - Added simple text tokenization and updated them with calculated index.
 - We also need to <SOS/EOS>, <UNK> tokens too along with some standard tokenizers and cleaners.
+- Use `random.sample()` as it samples without replacement. `random.choices()` samples with replacement.
