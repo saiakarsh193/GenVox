@@ -36,7 +36,7 @@ dataset_config = DatasetConfig(
     wavs_path=os.path.join(dataset_path, "wavs"),
 )
 
-# write_file_from_config(dataset_config, 'config.json')
+# write_file_from_config('config.json', text_config, audio_config, dataset_config)
 
 dataset_processor = DatasetProcessor(dataset_config)
 dataset_processor()

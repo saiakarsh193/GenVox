@@ -140,12 +140,15 @@ def load_config_from_file(path):
 def get_json_from_config(config):
     config_json = {}
     for attr, value in vars(config).items():
-        if isinstance(value, BaseConfig):
-            value = get_json_from_config(value)
-        config_json[attr] = value
+        if not isinstance(value, BaseConfig):
+            config_json[attr] = value
     return config_json
 
 @typechecked
-def write_file_from_config(config: DatasetConfig, path):
-    config_json = get_json_from_config(config)
+def write_file_from_config(path, text_config: TextConfig, audio_config: AudioConfig, dataset_config: DatasetConfig):
+    config_json = {
+        'text_config': get_json_from_config(text_config),
+        'audio_config': get_json_from_config(audio_config),
+        'dataset_config': get_json_from_config(dataset_config)
+    }
     dump_json(path, config_json)

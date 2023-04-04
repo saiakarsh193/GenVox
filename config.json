@@ -1,0 +1,18 @@
+{
+    "text_config": {},
+    "audio_config": {
+        "sampling_rate": 16000,
+        "trim_silence": true,
+        "trim_dbfs": -50,
+        "min_wav_duration": 2,
+        "max_wav_duration": 10
+    },
+    "dataset_config": {
+        "dataset_type": "text",
+        "delimiter": "|",
+        "uid_index": 0,
+        "utt_index": 1,
+        "transcript_path": "data/LJSpeech_test/metadata.csv",
+        "wavs_path": "data/LJSpeech_test/wavs"
+    }
+}
