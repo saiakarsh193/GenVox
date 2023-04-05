@@ -3,3 +3,4 @@ tqdm
 yt_dlp
 scipy
 matplotlib
+librosa

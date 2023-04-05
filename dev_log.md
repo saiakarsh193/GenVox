@@ -123,3 +123,11 @@
 - Added simple text tokenization and updated them with calculated index.
 - We also need to <SOS/EOS>, <UNK> tokens too along with some standard tokenizers and cleaners.
 - Use `random.sample()` as it samples without replacement. `random.choices()` samples with replacement.
+
+
+### 05-04-23
+**{Akarsh}**
+- Look into `model.eval()` and `torch.no_grad()` use cases ([src](https://discuss.pytorch.org/t/model-eval-vs-with-torch-no-grad/19615/2)).
+- `np.float32` datatype: 1 sign bit, 23 bits mantissa, 8 bits exponent (single decimal precision float) ([src](https://stackoverflow.com/questions/16963956/difference-between-python-float-and-numpy-float32)).
+- `g2p`: we need to add oov (for char level we just ignore those characters).
+- Trainable Fourier kernels ([src1](https://github.com/KinWaiCheuk/nnAudio), [src2](https://github.com/pseeth/torch-stft))

@@ -83,7 +83,8 @@ class AudioConfig(BaseConfig):
         trim_silence: bool = True,
         trim_dbfs: float = -50.0,
         min_wav_duration: float = 0.5,
-        max_wav_duration: float = 10
+        max_wav_duration: float = 10,
+        # normalize: bool = True
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence

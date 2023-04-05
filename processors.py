@@ -53,6 +53,9 @@ class TextProcessor:
     def tokenize(self, text):
         tokens = list(text.lower())
         return tokens
+    
+    def get_symbols_extra(self):
+        pass
 
 
 class AudioProcessor:
