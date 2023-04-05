@@ -9,8 +9,8 @@ from typeguard import typechecked
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
 from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
 from create_dataset import createDatasetFromYoutube
-from text.cleaners import invalid_cleaner
-from text.symbols import valid_symbols
+from text.cleaners import base_cleaners
+from text.symbols import symbols
 
 class DownloadProcessor:
     """
@@ -52,15 +52,15 @@ class TextProcessor:
         self.config = config
     
     def tokenize(self, text):
-        tokens = list(invalid_cleaner(text))
+        tokens = list(base_cleaners(text))
         return tokens
     
     def get_token_map(self, token_set):
         # symbol: index
-        token_map = {sym: ind for ind, sym in enumerate(valid_symbols)}
+        token_map = {sym: ind for ind, sym in enumerate(symbols)}
         count = len(token_map)
         for sym in token_set:
-            if(sym not in token_map):
+            if (sym not in token_map):
                 token_map[sym] = count
                 count += 1
         return token_map
