@@ -90,8 +90,8 @@
 **{Akarsh}**
 
 **{Rakesh}**
-- Learn STFT and Mel Spectrogram
-- Understand process in the code ([NVIDIA stft](https://github.com/NVIDIA/tacotron2/blob/master/stft.py), [NVIDIA train](https://github.com/NVIDIA/tacotron2/blob/master/train.py))
+- Learn about STFT and Mel Spectrogram.
+- Understand process in the code ([NVIDIA stft](https://github.com/NVIDIA/tacotron2/blob/master/stft.py), [NVIDIA train](https://github.com/NVIDIA/tacotron2/blob/master/train.py)).
 
 
 ### 30-03-23
@@ -105,6 +105,10 @@
 - Added `secToFormattedTime` in `utils` for printing time from seconds to a standard format.
 - Check `trimAudio` in general and format `create_dataset`.
 
+**{Rakesh}**
+- Added `create_dataset` file to download wav and transcript of the given youtube link and divide it into multiple segments and their respective text data.
+- Switched from `youtube_dl` to `yt-dlp` which is a forked version of youtube_dl as there were issues with youtube_dl. ([yt-dlp](https://github.com/yt-dlp/yt-dlp)).
+- Added a function to check whether the given link is youtube link or not.
 
 ### 01-04-23
 **{Akarsh}**
@@ -114,6 +118,11 @@
 - Fix global pip installation issue ([src](https://stackoverflow.com/questions/44552507/conda-environment-pip-is-trying-to-install-dependencies-globally)). **Not able to fix!**
 - **Fixed** global pip installation issue. The issue arises because the machine has both `pip3` and `conda` installed. So when we do `/path/to/conda/env/python3 -m pip list` with python already installed in the env, it is looking for the normal pip installation. Hence the simplest solution would be to just remove the `pip3` installation and then `conda` will only look in its own envs for pip.
 
+**{Rakesh}**
+- Changed the `vtt_to_csv` file to remove the dependency on reg ex. Also simplified the function to remove redundancy.
+- Removed `parse_vtt` function and added the same functionality into `vtt_to_csv` function.
+- Added verbose and quiet options for `Download_YT` function.
+- Using `os.path.join()` for all directory paths.
 
 ### 02-04-23
 **{Akarsh}**
@@ -124,6 +133,9 @@
 - We also need to <SOS/EOS>, <UNK> tokens too along with some standard tokenizers and cleaners.
 - Use `random.sample()` as it samples without replacement. `random.choices()` samples with replacement.
 
+**{Rakesh}**
+- Check how the text is processed (tokenizers, cleaners) in ([NVIDIA](https://github.com/NVIDIA/tacotron2/tree/master/text)) and ([espnet](https://github.com/espnet/espnet/tree/master/espnet2/text)).
+- Learn how the text and mel are processed in `TextMelLoader` and `TextMelCollate`.
 
 ### 05-04-23
 **{Akarsh}**

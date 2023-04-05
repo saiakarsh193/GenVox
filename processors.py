@@ -9,7 +9,8 @@ from typeguard import typechecked
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
 from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
 from create_dataset import createDatasetFromYoutube
-
+from text.cleaners import invalid_cleaner
+from text.symbols import valid_symbols
 
 class DownloadProcessor:
     """
@@ -51,11 +52,18 @@ class TextProcessor:
         self.config = config
     
     def tokenize(self, text):
-        tokens = list(text.lower())
+        tokens = list(invalid_cleaner(text))
         return tokens
     
-    def get_symbols_extra(self):
-        pass
+    def get_token_map(self, token_set):
+        # symbol: index
+        token_map = {sym: ind for ind, sym in enumerate(valid_symbols)}
+        count = len(token_map)
+        for sym in token_set:
+            if(sym not in token_map):
+                token_map[sym] = count
+                count += 1
+        return token_map
 
 
 class AudioProcessor:
@@ -156,7 +164,7 @@ class DatasetProcessor:
             tokens = self.text_processor.tokenize(valid_data[i][1])
             token_set.update(tokens)
             total_tokens.append(tokens)
-        token_map = {val: ind for ind, val in enumerate(token_set)}
+        token_map = self.text_processor.get_token_map(token_set)
 
         # updating token with index and creating final data
         final_data = []

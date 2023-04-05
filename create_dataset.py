@@ -20,13 +20,11 @@ def vtt_to_csv(vtt_file, csv_file, speaker_id):
             if '-->' in lines[i]:
                 start_time, end_time = lines[i].split(' --> ')
                 timestamps.append((parse_timestamp(start_time), parse_timestamp(end_time)))
-                texts.append(lines[i + 1])
                 if '-->' not in lines[i + 2]:
-                    texts.append(lines[i +2])
-                i += 1  # Skip the next line which contains the text
-            else:
-                i += 1
-        count = len(texts)
+                    lines[i + 1] = lines[i + 1] + " " + lines[i + 2]
+                texts.append(lines[i + 1])
+            i += 1  # Skip the next line which contains the text
+        count = len(timestamps)
         for i in range(count):
             index = str(i + 1).rjust(len(str(count)), '0')
             csv.write(f"{speaker_id}_{index}|{texts[i].strip()}\n")
