@@ -142,4 +142,7 @@
 - Look into `model.eval()` and `torch.no_grad()` use cases ([src](https://discuss.pytorch.org/t/model-eval-vs-with-torch-no-grad/19615/2)).
 - `np.float32` datatype: 1 sign bit, 23 bits mantissa, 8 bits exponent (single decimal precision float) ([src](https://stackoverflow.com/questions/16963956/difference-between-python-float-and-numpy-float32)).
 - `g2p`: we need to add oov (for char level we just ignore those characters).
-- Trainable Fourier kernels ([src1](https://github.com/KinWaiCheuk/nnAudio), [src2](https://github.com/pseeth/torch-stft))
+- Trainable Fourier kernels ([src1](https://github.com/KinWaiCheuk/nnAudio), [src2](https://github.com/pseeth/torch-stft)).
+- STFT in python ([src](https://kevinsprojects.wordpress.com/2014/12/13/short-time-fourier-transform-using-python-and-numpy/)).
+- `ffmpeg` cannot edit existing files in-place. we need to make duplicate file.
+- Replaced `pcm_u8` codec to default `pcm_s16le` codec in `ffmpeg`. In unsigned type, the mean is positive (signal moved up into positive axis). Hence mean wont be zero and therefore not ideal.

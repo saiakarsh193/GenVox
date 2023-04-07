@@ -75,7 +75,7 @@ class AudioProcessor:
         self.config = config
 
     def format(self, input_path, output_path):
-        command = ["ffmpeg", "-y", "-i", input_path, "-acodec", "pcm_u8", "-ac", "1", "-ar", str(self.config.sampling_rate), output_path]
+        command = ["ffmpeg", "-y", "-i", input_path, "-ac", "1", "-ar", str(self.config.sampling_rate), output_path]
         subprocess.run(command, capture_output=True)
     
     def preprocess(self):
@@ -142,8 +142,9 @@ class DatasetProcessor:
                 wav_name = os.path.basename(wav_data[i][1])
                 new_wav_path = os.path.join(wav_dump_dir, wav_name)
                 if (self.audio_config.trim_silence):
-                    scipy.io.wavfile.write(new_wav_path, fs, wav[left_ind: right_ind])
-                    self.audio_processor.format(new_wav_path, new_wav_path)
+                    scipy.io.wavfile.write(new_wav_path + "_", fs, wav[left_ind: right_ind])
+                    self.audio_processor.format(new_wav_path + "_", new_wav_path)
+                    os.remove(new_wav_path + "_")
                 else:
                     self.audio_processor.format(wav_data[i][1], new_wav_path)
                 valid_data.append((text_data[i][0], text_data[i][1], new_wav_path))
