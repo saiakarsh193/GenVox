@@ -31,9 +31,9 @@ Read [devlog](dev_log.md) for more details.
   - [x] Format of text and path
   - [x] Format to wav and fs
   - [x] Remove long/short
-- [ ] Preprocessing (3 days)
-  - [ ] Tokens/Vocab generation
-  - [ ] Features generation
+- [x] Preprocessing (3 days)
+  - [x] Tokens/Vocab generation
+  - [x] Features generation
 
 ### Phase 2
 - [ ] Torch Model
