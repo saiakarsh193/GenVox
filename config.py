@@ -84,18 +84,34 @@ class AudioConfig(BaseConfig):
         trim_dbfs: float = -50.0,
         min_wav_duration: float = 0.5,
         max_wav_duration: float = 10,
-        # normalize: bool = True
+        normalize: bool = True,
+        filter_length: int = 512,
+        hop_length: int = 256,
+        n_mels: int = 80,
+        mel_fmin: float = 0.0,
+        mel_fmax: float = 8000.0
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence
         self.trim_dbfs = trim_dbfs # decibels relative to full scale
         self.min_wav_duration = min_wav_duration
         self.max_wav_duration = max_wav_duration
+        self.normalize = normalize
+        self.filter_length = filter_length
+        self.hop_length = hop_length
+        self.n_mels = n_mels
+        self.mel_fmin = mel_fmin
+        self.mel_fmax = mel_fmax
 
         check_argument("sampling_rate", self.sampling_rate, min_val=16000, max_val=44100)
         check_argument("trim_dbfs", self.trim_dbfs, min_val=-100, max_val=0)
         check_argument("min_wav_duration", self.min_wav_duration, min_val=0.1)
         check_argument("max_wav_duration", self.max_wav_duration, min_val=self.min_wav_duration)
+        check_argument("filter_length", self.filter_length, min_val=256, max_val=2048)
+        check_argument("hop_length", self.hop_length, min_val=128, max_val=self.filter_length)
+        check_argument("n_mels", self.n_mels, min_val=12, max_val=128)
+        check_argument("mel_fmin", self.mel_fmin, min_val=0, max_val=8000)
+        check_argument("mel_fmax", self.mel_fmax, min_val=8000, max_val=22050)
 
 
 class DatasetConfig(BaseConfig):

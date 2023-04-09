@@ -189,5 +189,14 @@
   - power_spectrogram -> [np.matmul(mel_transform_filter, spectrogram)] -> mel_spectrogram
   - `np.abs()` of spectrogram gives magnitude while `np.angle()` gives **phase**
 - Reading about mel and its use ([src](https://medium.com/analytics-vidhya/understanding-the-mel-spectrogram-fca2afa2ce53)).
-- `librosa.stft()` uses `np.fft.rfft()`, hence we get `1 + (n_fft // 2)` values as the output ([src](https://stackoverflow.com/questions/52387673/what-is-the-difference-between-numpy-fft-fft-and-numpy-fft-rfft)).
-  `np.fft.fft()` for real input given Hermitian-symmetric output, where the negative frequencies are the complex conjugates of positive frequencies are hence redundant.
+
+
+### 09-04-23
+**{Akarsh}**
+- `librosa.stft()` uses `np.fft.rfft()`, hence we get `1 + (n_fft // 2)` values as the output ([src](https://stackoverflow.com/questions/52387673/what-is-the-difference-between-numpy-fft-fft-and-numpy-fft-rfft)).  
+  `np.fft.fft()` for real input gives Hermitian-symmetric output, where the negative frequencies are the complex conjugates of positive frequencies and are hence redundant.
+- Completely implemented `stft()` and `istft()` from scratch using `numpy`. Heavily used `librosa` docs and other resources, but greatly simplified the code by making to quite task specific.
+- Added above explored code along with other audio helper functions in `audio.py`.
+- **Removed** `librosa` dependency.
+- Added `AudioProcessor.convert2mel()` that takes in a wav_path and extracts features (mel spectrogram) from it and saves it as a `.npy` file in `dump/feats` directory.  
+  `.npy` file is `numpy` format for saving arrays as data ([src](https://numpy.org/doc/stable/reference/generated/numpy.save.html)).

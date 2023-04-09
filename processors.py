@@ -3,14 +3,15 @@ import tqdm
 import subprocess
 import shutil
 import scipy.io
+import numpy as np
 from pathlib import Path
 from typeguard import typechecked
 
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
 from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
 from create_dataset import createDatasetFromYoutube
-from text.cleaners import base_cleaners
-from text.symbols import symbols
+from text import base_cleaners, symbols
+from audio import normalize_signal, stft, fft2mel
 
 class DownloadProcessor:
     """
@@ -78,9 +79,14 @@ class AudioProcessor:
         command = ["ffmpeg", "-y", "-i", input_path, "-ac", "1", "-ar", str(self.config.sampling_rate), output_path]
         subprocess.run(command, capture_output=True)
     
-    def preprocess(self):
-        pass
-
+    def convert2mel(self, input_path, output_path):
+        fs, signal = scipy.io.wavfile.read(input_path)
+        assert fs == self.config.sampling_rate, f"wav file ({input_path}) sampling rate ({fs}) does not match with config ({self.config.sampling_rate})"
+        if (self.config.normalize):
+            signal = normalize_signal(signal)
+        spectrogram = stft(signal, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
+        mel_spectrogram = fft2mel(np.abs(spectrogram), fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)        
+        np.save(output_path, mel_spectrogram)
 
 class DatasetProcessor:
     """
@@ -98,10 +104,13 @@ class DatasetProcessor:
         print(self.config)
         dump_dir = "dump"
         wav_dump_dir = os.path.join("dump", "wavs")
+        feature_dump_dir = os.path.join("dump", "feats")
         assert not os.path.isdir(dump_dir), f"dump ({dump_dir}) directory already exists"
         os.mkdir("dump")
         assert not os.path.isdir(wav_dump_dir), f"wav_dump ({wav_dump_dir}) directory already exists"
         os.mkdir(wav_dump_dir)
+        assert not os.path.isdir(feature_dump_dir), f"feature_dump_dir ({feature_dump_dir}) directory already exists"
+        os.mkdir(feature_dump_dir)
 
         # extracting text data
         text_data = []
@@ -147,7 +156,11 @@ class DatasetProcessor:
                     os.remove(new_wav_path + "_")
                 else:
                     self.audio_processor.format(wav_data[i][1], new_wav_path)
-                valid_data.append((text_data[i][0], text_data[i][1], new_wav_path))
+                feature_name = os.path.splitext(wav_name)[0] + ".npy"
+                feature_path = os.path.join(feature_dump_dir, feature_name)
+                self.audio_processor.convert2mel(new_wav_path, feature_path)
+                # os.remove(new_wav_path)
+                valid_data.append((text_data[i][0], text_data[i][1], feature_path))
         
         print("trimmed and removed long and short wav files -> before: {bf_cnt} ({bf_len}), after: {af_cnt} ({af_len}), removed: {rm_cnt} ({rm_len})".format(
             bf_cnt=len(text_data),

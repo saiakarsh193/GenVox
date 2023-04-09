@@ -24,7 +24,13 @@ audio_config = AudioConfig(
     trim_silence=True,
     trim_dbfs=-50, # anything below -50 is considered silent
     min_wav_duration=2,
-    max_wav_duration=10
+    max_wav_duration=10,
+    normalize=True,
+    filter_length=1024,
+    hop_length=256,
+    n_mels=80,
+    mel_fmin=0.0,
+    mel_fmax=8000.0
 )
 
 dataset_config = DatasetConfig(

@@ -16,6 +16,10 @@ def signal_to_frames(y, window_length, hop_length, pad = False):
         frames.append(y[i * hop_length: i * hop_length + window_length])
     return np.vstack(frames)
 
+def normalize_signal(y):
+    norm_fac = max(abs(np.min(y)), abs(np.max(y)))
+    return (y / norm_fac).astype(np.float32)
+
 def amplitude_to_db(spectrogram, amin=1e-5):
     magnitude_spectrogram = np.abs(spectrogram)
     power_spectrogram = magnitude_spectrogram**2
@@ -119,12 +123,7 @@ def mel2fft(mel_matrix, fs, n_fft, n_mels, fmin, fmax):
 if __name__ == "__main__":
     path = "dump/wavs/LJ001-0009.wav"
     fs, sig = scipy.io.wavfile.read(path)
-    # print(sig.shape[0], fs, sig.shape[0] / fs)
-    norm_fac = max(abs(np.min(sig)), abs(np.max(sig)))
-    # print(norm_fac)
-    sig = (sig / norm_fac).astype(np.float32)
-    assert np.min(sig) >= -1
-    assert np.max(sig) <=  1
+    sig = normalize_signal(sig)
 
     filter_length = 1024 # same as window_length
     hop_length = 256
@@ -134,7 +133,7 @@ if __name__ == "__main__":
     tsiz = filter_length + (tlen - 1) * hop_length
     sig = sig[: tsiz]
 
-    print(sig.shape, fs, filter_length, hop_length)
+    # print(sig.shape, fs, filter_length, hop_length)
     st = stft(sig, n_fft=filter_length, hop_length=hop_length)
     # print(st.shape)
     mag, ang = np.abs(st), np.angle(st)
