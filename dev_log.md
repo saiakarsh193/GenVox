@@ -3,6 +3,7 @@
 - **{Akarsh}**
 - **{Rakesh}**
 
+
 ## Log Dates
 <!-- no toc -->
 - [26-03-23](#26-03-23)
@@ -10,6 +11,12 @@
 - [28-03-23](#28-03-23)
 - [29-03-23](#29-03-23)
 - [30-03-23](#30-03-23)
+- [31-03-23](#31-03-23)
+- [01-04-23](#01-04-23)
+- [02-04-23](#02-04-23)
+- [05-04-23](#05-04-23)
+- [08-04-23](#08-04-23)
+
 
 ### 26-03-23
 **{Akarsh}**
@@ -110,6 +117,7 @@
 - Switched from `youtube_dl` to `yt-dlp` which is a forked version of youtube_dl as there were issues with youtube_dl. ([yt-dlp](https://github.com/yt-dlp/yt-dlp)).
 - Added a function to check whether the given link is youtube link or not.
 
+
 ### 01-04-23
 **{Akarsh}**
 - Added own code for `trim_audio_silence` and removed `pydub` dependency.
@@ -124,6 +132,7 @@
 - Added verbose and quiet options for `Download_YT` function.
 - Using `os.path.join()` for all directory paths.
 
+
 ### 02-04-23
 **{Akarsh}**
 - Changed the pipeline.
@@ -137,12 +146,48 @@
 - Check how the text is processed (tokenizers, cleaners) in ([NVIDIA](https://github.com/NVIDIA/tacotron2/tree/master/text)) and ([espnet](https://github.com/espnet/espnet/tree/master/espnet2/text)).
 - Learn how the text and mel are processed in `TextMelLoader` and `TextMelCollate`.
 
+
 ### 05-04-23
 **{Akarsh}**
 - Look into `model.eval()` and `torch.no_grad()` use cases ([src](https://discuss.pytorch.org/t/model-eval-vs-with-torch-no-grad/19615/2)).
 - `np.float32` datatype: 1 sign bit, 23 bits mantissa, 8 bits exponent (single decimal precision float) ([src](https://stackoverflow.com/questions/16963956/difference-between-python-float-and-numpy-float32)).
 - `g2p`: we need to add oov (for char level we just ignore those characters).
 - Trainable Fourier kernels ([src1](https://github.com/KinWaiCheuk/nnAudio), [src2](https://github.com/pseeth/torch-stft)).
-- STFT in python ([src](https://kevinsprojects.wordpress.com/2014/12/13/short-time-fourier-transform-using-python-and-numpy/)).
+- STFT simple code idea in python ([src](https://kevinsprojects.wordpress.com/2014/12/13/short-time-fourier-transform-using-python-and-numpy/)).
+  - We pad zeroes the length of the frame, in order to get first half of FFT the same length of as that of the frame.
+  - `np.fft.fft` has even (Hermitian) symmetry ([src](https://stackoverflow.com/questions/70758915/is-a-numpy-fft-on-real-values-actually-hermitian)).
 - `ffmpeg` cannot edit existing files in-place. we need to make duplicate file.
 - Replaced `pcm_u8` codec to default `pcm_s16le` codec in `ffmpeg`. In unsigned type, the mean is positive (signal moved up into positive axis). Hence mean wont be zero and therefore not ideal.
+
+
+### 08-04-23
+**{Akarsh}**
+- `tensor.half()` or `model.half()` will convert all model weights to half precision. This is done to speed up calculations ([src](https://discuss.pytorch.org/t/what-does-pytorch-do-when-calling-tensor-half/58597)).
+- why computed frame count and `librosa.stft` frame count is not matching. Because of center padding. Read ([src1](https://github.com/librosa/librosa/issues/530), [src2](https://groups.google.com/g/librosa/c/b5dShgDAkWo?pli=1)). With `center=False` it is the normal calculation, that is
+  $$ \textrm{total length} = \textrm{window length} + (\lambda - 1) * \textrm{hop length}$$
+  this also assumes that the signal fits perfectly (if extra is there, then we dont consider it).  
+  Also if `center=False` in `librosa.stft()` then `pad_mode` is ignored. If `center=True`, then we use the default value of `pad_mode="constant"` to pad zeros to the input signal on **both** sides for framing.
+- Nyquist theorem and calculating signal having a particular frequency:
+  ```
+  nyquist theorem states:
+  sampling frequency >= 2 * max_frequency to be preserved
+  #points per sec >= 2 * #waves per sec
+  ---
+  if coeff increases wavelength decreases (inversely related)
+  coeff -> #values for one wave (continuous)
+  1 -> 2 * pi values
+  x -> 1 / f values
+  1 * 2 * pi = x * 1 / f
+  => x = (2 * pi * f)
+  use sin(x * points) for f frequency signal
+  ```
+- Important concepts for STFT and mel spectrogram (the way `librosa` does `librosa.amplitude_to_db()`, `librosa.stft()`):
+  - signal -> [filter_length, hop_length, window_length] -> frames
+  - frames (real) -> [stacking fft(frame) => stft] -> spectrogram (complex)
+  - spectrogram (complex) -> [np.abs] -> amplitude_spectrogram -> [np.power, usually ^2] -> power_spectrogram
+  - power_spectrogram -> [10 * log10(max(amin, sig)) - 10 * log10(max(amin, ref))] -> dB_scale_spectrogram
+  - power_spectrogram -> [np.matmul(mel_transform_filter, spectrogram)] -> mel_spectrogram
+  - `np.abs()` of spectrogram gives magnitude while `np.angle()` gives **phase**
+- Reading about mel and its use ([src](https://medium.com/analytics-vidhya/understanding-the-mel-spectrogram-fca2afa2ce53)).
+- `librosa.stft()` uses `np.fft.rfft()`, hence we get `1 + (n_fft // 2)` values as the output ([src](https://stackoverflow.com/questions/52387673/what-is-the-difference-between-numpy-fft-fft-and-numpy-fft-rfft)).
+  `np.fft.fft()` for real input given Hermitian-symmetric output, where the negative frequencies are the complex conjugates of positive frequencies are hence redundant.
