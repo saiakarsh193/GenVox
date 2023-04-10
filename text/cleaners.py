@@ -46,8 +46,8 @@ def lowercase(text):
     return text.lower()
 
 
-def remove_invalid_symbols(text):
-    return re.sub(_invalid_symbols, '', text)
+def replace_invalid_symbols(text):
+    return re.sub(_invalid_symbols, ' ', text)
 
 
 def expand_abbreviations(text):
@@ -66,7 +66,7 @@ def collapse_whitespace(text):
 
 def base_cleaners(text, language="english"):
     text = lowercase(text)
-    text = remove_invalid_symbols(text)
+    text = replace_invalid_symbols(text)
     if (language == "english"):
         text = expand_numbers(text)
         text = expand_abbreviations(text)

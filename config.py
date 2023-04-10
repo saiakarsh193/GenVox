@@ -1,5 +1,6 @@
 import os
 from typeguard import typechecked
+import numpy as np
 
 from utils import dump_json, load_json
 
@@ -7,7 +8,7 @@ def check_argument(name, value, min_val=None, max_val=None):
     if (min_val == None):
         assert (value <= max_val), f"The value \'{name}\' ({value}) is above max_val ({max_val})."
     elif (max_val == None):
-        assert (value >= min_val), f"The value \'{name}\' ({value}) is below min_val ({min_val})"
+        assert (value >= min_val), f"The value \'{name}\' ({value}) is below min_val ({min_val})."
     else:
         assert (value >= min_val and value <= max_val), f"The value \'{name}\' ({value}) is not in the required range ({min_val} -> {max_val})."
 
@@ -89,7 +90,9 @@ class AudioConfig(BaseConfig):
         hop_length: int = 256,
         n_mels: int = 80,
         mel_fmin: float = 0.0,
-        mel_fmax: float = 8000.0
+        mel_fmax: float = 8000.0,
+        log_func = np.log10,
+        ref_level_db: float = 1
     ):
         self.sampling_rate = sampling_rate
         self.trim_silence = trim_silence
@@ -102,6 +105,8 @@ class AudioConfig(BaseConfig):
         self.n_mels = n_mels
         self.mel_fmin = mel_fmin
         self.mel_fmax = mel_fmax
+        self.log_func = log_func
+        self.ref_level_db = ref_level_db
 
         check_argument("sampling_rate", self.sampling_rate, min_val=16000, max_val=44100)
         check_argument("trim_dbfs", self.trim_dbfs, min_val=-100, max_val=0)
@@ -112,6 +117,8 @@ class AudioConfig(BaseConfig):
         check_argument("n_mels", self.n_mels, min_val=12, max_val=128)
         check_argument("mel_fmin", self.mel_fmin, min_val=0, max_val=8000)
         check_argument("mel_fmax", self.mel_fmax, min_val=8000, max_val=22050)
+        assert self.log_func in [np.log, np.log10], f"The value \'log_func\' ({self.log_func}) is an invalid value."
+        check_argument("ref_level_db", self.ref_level_db, min_val=1)
 
 
 class DatasetConfig(BaseConfig):

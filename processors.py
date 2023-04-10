@@ -11,7 +11,7 @@ from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
 from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
 from create_dataset import createDatasetFromYoutube
 from text import base_cleaners, symbols
-from audio import normalize_signal, stft, fft2mel
+from audio import normalize_signal, stft, fft2mel, amplitude_to_db
 
 class DownloadProcessor:
     """
@@ -86,7 +86,8 @@ class AudioProcessor:
             signal = normalize_signal(signal)
         spectrogram = stft(signal, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
         mel_spectrogram = fft2mel(np.abs(spectrogram), fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)        
-        np.save(output_path, mel_spectrogram)
+        mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db)
+        np.save(output_path, mel_db)
 
 class DatasetProcessor:
     """

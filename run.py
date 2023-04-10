@@ -1,7 +1,11 @@
 import os
+import random
+import numpy as np
 
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, write_file_from_config
 from processors import DownloadProcessor, DatasetProcessor
+
+random.seed(1234)
 
 dataset_path = "data/LJSpeech_test"
 # dataset_path = "data/youtube_3b1b"
@@ -30,7 +34,9 @@ audio_config = AudioConfig(
     hop_length=256,
     n_mels=80,
     mel_fmin=0.0,
-    mel_fmax=8000.0
+    mel_fmax=8000.0,
+    log_func=np.log,
+    ref_level_db=20
 )
 
 dataset_config = DatasetConfig(
