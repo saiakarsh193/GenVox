@@ -20,7 +20,11 @@ def normalize_signal(y):
     norm_fac = max(abs(np.min(y)), abs(np.max(y)))
     return (y / norm_fac).astype(np.float32)
 
-def amplitude_to_db(spectrogram, amin=1e-5, ref=1, log_func=np.log10):
+def amplitude_to_db(spectrogram, amin=1e-5, ref=1, log_func="np.log10"):
+    if (log_func == "np.log"):
+        log_func = np.log
+    elif (log_func == "np.log10"):
+        log_func = np.log10
     magnitude_spectrogram = np.abs(spectrogram)
     power_spectrogram = magnitude_spectrogram**2
     db = 20 * log_func(np.maximum(amin, power_spectrogram))
@@ -140,10 +144,11 @@ if __name__ == "__main__":
     mag, ang = np.abs(st), np.angle(st)
 
     mel_mag = fft2mel(mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
-    # mag = mel2fft(mel_mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
+    mag = mel2fft(mel_mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
 
     st_comb = combine_magnitude_phase(mag, ang)
     ist = istft(st_comb, n_fft=filter_length, hop_length=hop_length)
+    ist[(ist > 1) | (ist < -1)] = 0
     # print(ist.shape)
 
     print(np.sum(ist - sig))

@@ -1,11 +1,15 @@
 import os
 import random
 import numpy as np
+import torch
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, write_file_from_config
+from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, write_file_from_config
 from processors import DownloadProcessor, DatasetProcessor
+from trainer import Trainer
 
 random.seed(1234)
+torch.manual_seed(1234)
+torch.cuda.manual_seed(1234)
 
 dataset_path = "data/LJSpeech_test"
 # dataset_path = "data/youtube_3b1b"
@@ -35,7 +39,7 @@ audio_config = AudioConfig(
     n_mels=80,
     mel_fmin=0.0,
     mel_fmax=8000.0,
-    log_func=np.log,
+    log_func="np.log",
     ref_level_db=20
 )
 
@@ -46,9 +50,15 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
+    validation_split=200
 )
-
-# write_file_from_config('config.json', text_config, audio_config, dataset_config)
 
 dataset_processor = DatasetProcessor(dataset_config)
 dataset_processor()
+
+trainer_config = TrainerConfig()
+
+trainer = Trainer(trainer_config)
+trainer.train()
+
+# write_file_from_config('config.json', text_config, audio_config, dataset_config, trainer_config)

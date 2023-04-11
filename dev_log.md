@@ -200,3 +200,12 @@
 - **Removed** `librosa` dependency.
 - Added `AudioProcessor.convert2mel()` that takes in a wav_path and extracts features (mel spectrogram) from it and saves it as a `.npy` file in `dump/feats` directory.  
   `.npy` file is `numpy` format for saving arrays as data ([src](https://numpy.org/doc/stable/reference/generated/numpy.save.html)).
+
+
+### 11-04-23
+**{Akarsh}**
+- Explore the idea of calculating features on the go. We can reduce load and increase parallelization during loading. This is handled natively by `torch.utils.data.DataLoader` which can be accessed by `num_workers` value. The only upside is to **save memory**.
+- **Assumption**: single speaker, single language on single GPU
+- Added data splitting into training and validation inside `DatasetProcessor`.
+- Check `pin_memory=False` and `drop_last=True` along with `shuffle=True/False` in `torch.utils.data.DataLoader`.
+- Add collate function for DataLoader.

@@ -1,6 +1,5 @@
 import os
 from typeguard import typechecked
-import numpy as np
 
 from utils import dump_json, load_json
 
@@ -91,7 +90,7 @@ class AudioConfig(BaseConfig):
         n_mels: int = 80,
         mel_fmin: float = 0.0,
         mel_fmax: float = 8000.0,
-        log_func = np.log10,
+        log_func = "np.log10",
         ref_level_db: float = 1
     ):
         self.sampling_rate = sampling_rate
@@ -117,7 +116,7 @@ class AudioConfig(BaseConfig):
         check_argument("n_mels", self.n_mels, min_val=12, max_val=128)
         check_argument("mel_fmin", self.mel_fmin, min_val=0, max_val=8000)
         check_argument("mel_fmax", self.mel_fmax, min_val=8000, max_val=22050)
-        assert self.log_func in [np.log, np.log10], f"The value \'log_func\' ({self.log_func}) is an invalid value."
+        assert self.log_func in ["np.log", "np.log10"], f"The value \'log_func\' ({self.log_func}) is an invalid function name."
         check_argument("ref_level_db", self.ref_level_db, min_val=1)
 
 
@@ -136,6 +135,7 @@ class DatasetConfig(BaseConfig):
         utt_index: int = 1,
         transcript_path: str = "",
         wavs_path: str = "",
+        validation_split = 0
     ):
         self.text_config = text_config
         self.audio_config = audio_config
@@ -145,21 +145,44 @@ class DatasetConfig(BaseConfig):
         self.utt_index = utt_index
         self.transcript_path = transcript_path
         self.wavs_path = wavs_path
+        self.validation_split = validation_split
 
         assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
         check_argument("uid_index", self.uid_index, min_val=0)
         check_argument("utt_index", self.utt_index, min_val=0)
         assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
+        assert type(self.validation_split) in [int, float], f"validation_split ({self.validation_split}) is invalid"
+        if type(self.validation_split) == int: # count of validation samples
+            check_argument("validation_split", self.validation_split, min_val=0)
+        elif type(self.validation_split) ==  float: # fraction of validation samples
+            check_argument("validation_split", self.validation_split, min_val=0, max_val=1)
+
+
+class TrainerConfig(BaseConfig):
+    """
+    Config for Trainer class
+    """
+    @typechecked
+    def __init__(
+        self,
+        batch_size: int = 64,
+        num_loader_workers: int = 2,
+        run_validation: bool = True,
+        validation_batch_size: int = 32
+    ):
+        self.batch_size = batch_size
+        self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
+        self.run_validation = run_validation
+        self.validation_batch_size = validation_batch_size
 
 
 def load_config_from_file(path):
     config_json = load_json(path)
     text_config = TextConfig(**config_json['text_config'])
-    del config_json['text_config']
     audio_config = AudioConfig(**config_json['audio_config'])
-    del config_json['audio_config']
-    dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json)
-    return text_config, audio_config, dataset_config
+    dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json['dataset_config'])
+    trainer_config = TrainerConfig(**config_json['trainer_config'])
+    return text_config, audio_config, dataset_config, trainer_config
 
 def get_json_from_config(config):
     config_json = {}
@@ -169,10 +192,11 @@ def get_json_from_config(config):
     return config_json
 
 @typechecked
-def write_file_from_config(path, text_config: TextConfig, audio_config: AudioConfig, dataset_config: DatasetConfig):
+def write_file_from_config(path, text_config: TextConfig, audio_config: AudioConfig, dataset_config: DatasetConfig, trainer_config: TrainerConfig):
     config_json = {
         'text_config': get_json_from_config(text_config),
         'audio_config': get_json_from_config(audio_config),
-        'dataset_config': get_json_from_config(dataset_config)
+        'dataset_config': get_json_from_config(dataset_config),
+        'trainer_config': get_json_from_config(trainer_config)
     }
     dump_json(path, config_json)

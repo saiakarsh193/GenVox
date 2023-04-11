@@ -5,7 +5,15 @@
         "trim_silence": true,
         "trim_dbfs": -50,
         "min_wav_duration": 2,
-        "max_wav_duration": 10
+        "max_wav_duration": 10,
+        "normalize": true,
+        "filter_length": 1024,
+        "hop_length": 256,
+        "n_mels": 80,
+        "mel_fmin": 0.0,
+        "mel_fmax": 8000.0,
+        "log_func": "np.log",
+        "ref_level_db": 20
     },
     "dataset_config": {
         "dataset_type": "text",
@@ -13,6 +21,13 @@
         "uid_index": 0,
         "utt_index": 1,
         "transcript_path": "data/LJSpeech_test/metadata.csv",
-        "wavs_path": "data/LJSpeech_test/wavs"
+        "wavs_path": "data/LJSpeech_test/wavs",
+        "validation_split": 200
+    },
+    "trainer_config": {
+        "batch_size": 64,
+        "num_loader_workers": 2,
+        "run_validation": true,
+        "validation_batch_size": 32
     }
 }

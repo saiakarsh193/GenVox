@@ -2,6 +2,7 @@ import os
 import tqdm
 import subprocess
 import shutil
+import random
 import scipy.io
 import numpy as np
 from pathlib import Path
@@ -78,20 +79,21 @@ class AudioProcessor:
     def format(self, input_path, output_path):
         command = ["ffmpeg", "-y", "-i", input_path, "-ac", "1", "-ar", str(self.config.sampling_rate), output_path]
         subprocess.run(command, capture_output=True)
-    
+
     def convert2mel(self, input_path, output_path):
         fs, signal = scipy.io.wavfile.read(input_path)
         assert fs == self.config.sampling_rate, f"wav file ({input_path}) sampling rate ({fs}) does not match with config ({self.config.sampling_rate})"
         if (self.config.normalize):
             signal = normalize_signal(signal)
         spectrogram = stft(signal, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
-        mel_spectrogram = fft2mel(np.abs(spectrogram), fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)        
+        mel_spectrogram = fft2mel(np.abs(spectrogram), fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)
         mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db)
         np.save(output_path, mel_db)
 
 class DatasetProcessor:
     """
-    For extracting text from dataset transcript, tokenizing text, formatting audio, filtering data and creating data.csv file and dump wav files
+    For extracting and tokenizing text from transcript and
+    formatting and extracting features from audio to create dump wav and feature files and data*.csv
     """
     @typechecked
     def __init__(self, config: DatasetConfig):
@@ -194,3 +196,24 @@ class DatasetProcessor:
         with open(os.path.join(dump_dir, "data.csv"), 'w') as f:
             for text, wav_path in final_data:
                 f.write(f"{text}|{wav_path}\n")
+
+        all_index = set(range(len(final_data)))
+        if type(self.config.validation_split) == int:
+            validation_count = self.config.validation_split
+            assert validation_count < len(all_index), f"validation sample count ({validation_count}) is more than total data count ({len(all_index)})"
+        else:
+            validation_count = int(self.config.validation_split * len(all_index))
+        validation_index = set(random.sample(all_index, k=validation_count))
+        train_index = all_index - validation_index
+
+        with open(os.path.join(dump_dir, "data_train.csv"), 'w') as f:
+            for index in train_index:
+                text, wav_path = final_data[index]
+                f.write(f"{text}|{wav_path}\n")
+
+        with open(os.path.join(dump_dir, "data_validation.csv"), 'w') as f:
+            for index in validation_index:
+                text, wav_path = final_data[index]
+                f.write(f"{text}|{wav_path}\n")
+
+        print(f"split data ({len(all_index)}) into train ({len(train_index)}) and validation ({len(validation_index)})")
