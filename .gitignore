@@ -1,5 +1,6 @@
 data/
 dump/
+exp/
 ttsenv/
 
 #### below is gitignore template for python (github)

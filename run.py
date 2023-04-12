@@ -53,10 +53,14 @@ dataset_config = DatasetConfig(
     validation_split=200
 )
 
-dataset_processor = DatasetProcessor(dataset_config)
-dataset_processor()
+# dataset_processor = DatasetProcessor(dataset_config)
+# dataset_processor()
 
-trainer_config = TrainerConfig()
+trainer_config = TrainerConfig(
+    batch_size=128,
+    num_loader_workers=0,
+    run_validation=False
+)
 
 trainer = Trainer(trainer_config)
 trainer.train()

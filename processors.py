@@ -109,7 +109,7 @@ class DatasetProcessor:
         wav_dump_dir = os.path.join("dump", "wavs")
         feature_dump_dir = os.path.join("dump", "feats")
         assert not os.path.isdir(dump_dir), f"dump ({dump_dir}) directory already exists"
-        os.mkdir("dump")
+        os.mkdir(dump_dir)
         assert not os.path.isdir(wav_dump_dir), f"wav_dump ({wav_dump_dir}) directory already exists"
         os.mkdir(wav_dump_dir)
         assert not os.path.isdir(feature_dump_dir), f"feature_dump_dir ({feature_dump_dir}) directory already exists"

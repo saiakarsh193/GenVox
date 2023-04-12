@@ -209,3 +209,12 @@
 - Added data splitting into training and validation inside `DatasetProcessor`.
 - Check `pin_memory=False` and `drop_last=True` along with `shuffle=True/False` in `torch.utils.data.DataLoader`.
 - Add collate function for DataLoader.
+
+
+### 12-04-23
+**{Akarsh}**
+- `torch.nn` vs `torch.nn.functional` ([src](https://discuss.pytorch.org/t/what-is-the-difference-between-torch-nn-and-torch-nn-functional/33597)).
+- `torch.utils.data.DataLoader` attributes: ([src](https://pytorch.org/docs/stable/data.html?highlight=dataloader#torch.utils.data.DataLoader))
+  - pin_memory (bool, optional) – If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them. If your data elements are a custom type, or your collate_fn returns a batch that is a custom type, see the example below. (default: False)
+  - drop_last (bool, optional) – set to True to drop the last incomplete batch, if the dataset size is not divisible by the batch size. If False and the size of dataset is not divisible by the batch size, then the last batch will be smaller. (default: False)
+- Added `TextMelCollate()` for `torch.utils.data.DataLoader.collate_fn` in `Trainer`.
