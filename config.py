@@ -195,7 +195,7 @@ class TrainerConfig(BaseConfig):
         check_argument("epochs", self.epochs, min_val=1)
         check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
         if (self.wandb_logger):
-            assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True)"
+            assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
 
 
 def load_config_from_file(path):
