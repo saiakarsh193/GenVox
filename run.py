@@ -26,7 +26,8 @@ download_processor()
 
 text_config = TextConfig(
     language="english",
-    cleaners=["base_cleaners"]
+    cleaners=["base_cleaners"],
+    use_g2p=False
 )
 
 audio_config = AudioConfig(

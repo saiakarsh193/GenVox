@@ -73,9 +73,11 @@ class TextConfig(BaseConfig):
         self,
         language: str = "english",
         cleaners: Union[List[str], None] = None,
+        use_g2p: bool = False
     ):
         self.language = language.lower()
         self.cleaners = cleaners
+        self.use_g2p = use_g2p
 
 
 class AudioConfig(BaseConfig):

@@ -70,11 +70,11 @@ def collapse_whitespace(text):
 
 def base_cleaners(text, language="english"):
     text = lowercase(text)
-    text = replace_invalid_symbols(text)
     if (language == "english"):
         text = expand_numbers(text)
         text = expand_abbreviations(text)
     else:
         text = remove_numbers(text)
+    text = replace_invalid_symbols(text)
     text = collapse_whitespace(text)
     return text

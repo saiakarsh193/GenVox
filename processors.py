@@ -7,6 +7,7 @@ import scipy.io
 import numpy as np
 from pathlib import Path
 from typeguard import typechecked
+import g2p_en
 
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
 from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
@@ -55,11 +56,17 @@ class TextProcessor:
         self.cleaner_map = {
             "base_cleaners": lambda text: base_cleaners(text, self.config.language)
             }
+        self.g2p_map = {
+            "english": g2p_en.G2p()
+        }
     
     def tokenize(self, text):
         for cleaner in self.config.cleaners:
             text = self.cleaner_map[cleaner](text)
-        tokens = list(text)
+        if (self.config.use_g2p):
+            tokens = self.g2p_map[self.config.language](text)
+        else:
+            tokens = list(text)
         return tokens
     
     def get_token_map(self, token_set):

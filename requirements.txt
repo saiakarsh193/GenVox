@@ -5,3 +5,4 @@ scipy
 matplotlib
 inflect
 wandb
+g2p_en
