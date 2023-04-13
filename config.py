@@ -169,15 +169,18 @@ class TrainerConfig(BaseConfig):
         num_loader_workers: int = 2,
         run_validation: bool = True,
         validation_batch_size: int = 32,
-        epochs: int = 100
+        epochs: int = 100,
+        max_best_models: int = 5
     ):
         self.batch_size = batch_size
         self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
         self.run_validation = run_validation
         self.validation_batch_size = validation_batch_size
         self.epochs = epochs
+        self.max_best_models = max_best_models
 
         check_argument("epochs", self.epochs, min_val=1)
+        check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
 
 
 def load_config_from_file(path):

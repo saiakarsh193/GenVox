@@ -5,6 +5,7 @@ import torch
 import torch.utils.data
 
 from config import TrainerConfig
+from utils import load_json, dump_json
 
 class TextMelDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_split_type=None):
@@ -63,6 +64,34 @@ class TextMelCollate:
         return token_padded, token_lengths, mel_padded, gate_padded, mel_lengths
 
 
+class CheckpointManager:
+    def __init__(self, max_best_models):
+        self.max_best_models = max_best_models
+        self.exp_dir = "exp"
+        assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
+        self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
+        dump_json(self.manager_path, [])
+
+    def save_model(self, iteration, model, loss_value):
+        # lower the loss_value better the model
+        # [(checkpoint_iteration, loss_value)] (increasing order)
+        manager_data = load_json(self.manager_path)
+        add_at_index = -1
+        for index in range(len(manager_data)):
+            if (loss_value < manager_data[index][1]):
+                add_at_index = index
+                break
+        if (len(manager_data) == 0):
+            add_at_index = 0
+        if (add_at_index >= 0):
+            checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
+            manager_data.insert(add_at_index, (checkpoint_path, loss_value))
+            # for saving the torch model
+            # torch.save(model.state_dict(), checkpoint_path)
+        manager_data = manager_data[: self.max_best_models]
+        dump_json(self.manager_path, manager_data)
+
+
 class Trainer:
     """
     Trainer class for the data loading and training stage, along with checkpointing and logging
@@ -74,9 +103,12 @@ class Trainer:
         os.mkdir(exp_dir)
         self.config = config
         print(self.config)
+        self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
+
         self.collate_fn = TextMelCollate()
         self.train_dataset = TextMelDataset(dataset_split_type="train")
         self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.batch_size, collate_fn=self.collate_fn)
+
         if (self.config.run_validation):
             print("run_validation is set to True")
             self.validation_dataset = TextMelDataset(dataset_split_type="validation")
