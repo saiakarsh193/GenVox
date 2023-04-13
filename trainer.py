@@ -3,6 +3,7 @@ import numpy as np
 from typeguard import typechecked
 import torch
 import torch.utils.data
+import wandb
 
 from config import TrainerConfig
 from utils import load_json, dump_json
@@ -92,6 +93,27 @@ class CheckpointManager:
         dump_json(self.manager_path, manager_data)
 
 
+class WandbLogger:
+    def __init__(self, auth_key, project_name, experiment_id, architecture):
+        self.auth_key = auth_key
+        self.project_name = project_name
+        self.experiment_id = experiment_id
+        wandb.login(key=self.auth_key)
+        wandb.init(
+            project=self.project_name,
+            name=f"experiment_{self.experiment_id}",
+            config={
+                "architecture": architecture
+            }
+        )
+
+    def log(self, values):
+        pass
+
+    def finish(self):
+        wandb.finish()
+
+
 class Trainer:
     """
     Trainer class for the data loading and training stage, along with checkpointing and logging
@@ -104,6 +126,8 @@ class Trainer:
         self.config = config
         print(self.config)
         self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
+        if (self.config.wandb_logger):
+            self.wandb = WandbLogger(self.config.wandb_auth_key, self.config.project_name, self.config.experiment_id, self.config.model_architecture)
 
         self.collate_fn = TextMelCollate()
         self.train_dataset = TextMelDataset(dataset_split_type="train")
@@ -116,18 +140,24 @@ class Trainer:
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn)
 
     def train(self):
+        print(f"Project: {self.config.project_name}")
+        print(f"Experiment: {self.config.experiment_id}")
         print(f"training is starting (epochs: {self.config.epochs})")
         for epoch in range(self.config.epochs):
             print(f"training loop epoch: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
                 print(ind)
                 token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
-                print(token_padded.shape, token_lengths.shape, mel_padded.shape, gate_padded.shape, mel_lengths.shape)
+                # print(token_padded.shape, token_lengths.shape, mel_padded.shape, gate_padded.shape, mel_lengths.shape)
                 # model forward
                 # model backward
                 # params optim and grad zero
                 # logger
+                break
             break
+
+        if (self.config.wandb_logger):
+            self.wandb.finish()
 
 
 if __name__ == "__main__":

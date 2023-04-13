@@ -57,6 +57,9 @@ dataset_config = DatasetConfig(
 # dataset_processor()
 
 trainer_config = TrainerConfig(
+    project_name="dev_testing",
+    wandb_logger=False,
+    wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=128,
     num_loader_workers=0,
     run_validation=False

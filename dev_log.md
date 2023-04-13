@@ -218,3 +218,9 @@
   - pin_memory (bool, optional) – If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them. If your data elements are a custom type, or your collate_fn returns a batch that is a custom type, see the example below. (default: False)
   - drop_last (bool, optional) – set to True to drop the last incomplete batch, if the dataset size is not divisible by the batch size. If False and the size of dataset is not divisible by the batch size, then the last batch will be smaller. (default: False)
 - Added `TextMelCollate()` for `torch.utils.data.DataLoader.collate_fn` in `Trainer`.
+
+
+### 13-04-23
+**{Akarsh}**
+- Added `CheckpointManager()` in `Trainer` that will handle file saving for top n checkpoints based on the loss value.
+- Added `WandbLogger()` in `Trainer` that will handle `wandb` logging and syncing.

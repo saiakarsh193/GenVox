@@ -4,3 +4,4 @@ yt_dlp
 scipy
 matplotlib
 inflect
+wandb

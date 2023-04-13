@@ -1,7 +1,7 @@
 import os
 from typeguard import typechecked
 
-from utils import dump_json, load_json
+from utils import dump_json, load_json, get_random_HEX_name
 
 def check_argument(name, value, min_val=None, max_val=None):
     if (min_val == None):
@@ -165,22 +165,37 @@ class TrainerConfig(BaseConfig):
     @typechecked
     def __init__(
         self,
+        project_name: str = "",
+        experiment_id: str = "",
         batch_size: int = 64,
         num_loader_workers: int = 2,
         run_validation: bool = True,
         validation_batch_size: int = 32,
         epochs: int = 100,
-        max_best_models: int = 5
+        max_best_models: int = 5,
+        wandb_logger: bool = True,
+        wandb_auth_key: str = ""
     ):
+        self.model_architecture = "Tacotron2"
+        self.project_name = project_name
+        self.experiment_id = experiment_id
         self.batch_size = batch_size
         self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
         self.run_validation = run_validation
         self.validation_batch_size = validation_batch_size
         self.epochs = epochs
         self.max_best_models = max_best_models
+        self.wandb_logger = wandb_logger
+        self.wandb_auth_key = wandb_auth_key
 
+        assert self.project_name, "project_name not provided"
+        if self.experiment_id == "":
+            self.experiment_id = get_random_HEX_name(40)
+            print(f"experiment_id not provided, hence randomly generated ({self.experiment_id})")
         check_argument("epochs", self.epochs, min_val=1)
         check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
+        if (self.wandb_logger):
+            assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True)"
 
 
 def load_config_from_file(path):
