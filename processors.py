@@ -52,9 +52,14 @@ class TextProcessor:
     @typechecked
     def __init__(self, config: TextConfig) -> None:
         self.config = config
+        self.cleaner_map = {
+            "base_cleaners": lambda text: base_cleaners(text, self.config.language)
+            }
     
     def tokenize(self, text):
-        tokens = list(base_cleaners(text))
+        for cleaner in self.config.cleaners:
+            text = self.cleaner_map[cleaner](text)
+        tokens = list(text)
         return tokens
     
     def get_token_map(self, token_set):

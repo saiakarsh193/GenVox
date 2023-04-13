@@ -1,5 +1,10 @@
 {
-    "text_config": {},
+    "text_config": {
+        "language": "english",
+        "cleaners": [
+            "base_cleaners"
+        ]
+    },
     "audio_config": {
         "sampling_rate": 16000,
         "trim_silence": true,
@@ -20,14 +25,21 @@
         "delimiter": "|",
         "uid_index": 0,
         "utt_index": 1,
-        "transcript_path": "data/LJSpeech_test/metadata.csv",
-        "wavs_path": "data/LJSpeech_test/wavs",
-        "validation_split": 200
+        "transcript_path": "data/youtube_3b1b/transcript.txt",
+        "wavs_path": "data/youtube_3b1b/wavs",
+        "validation_split": 50
     },
     "trainer_config": {
-        "batch_size": 64,
-        "num_loader_workers": 2,
-        "run_validation": true,
-        "validation_batch_size": 32
+        "model_architecture": "Tacotron2",
+        "project_name": "dev_testing",
+        "experiment_id": "15811ecdd7",
+        "batch_size": 128,
+        "num_loader_workers": 0,
+        "run_validation": false,
+        "validation_batch_size": 32,
+        "epochs": 100,
+        "max_best_models": 5,
+        "wandb_logger": true,
+        "wandb_auth_key": "56acc87c7b95662ff270b9556cdf68de699a210f"
     }
 }

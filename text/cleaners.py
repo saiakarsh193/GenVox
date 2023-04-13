@@ -16,7 +16,7 @@ from .numbers import normalize_numbers
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
-
+_numbers_re = re.compile(r"[0123456789]")
 _invalid_symbols = re.compile(r"[\[\]~`@#$%^&*()\-_+=|\"\'<>/]")
 
 # List of (regular expression, replacement) pairs for abbreviations:
@@ -56,6 +56,10 @@ def expand_abbreviations(text):
     return text
 
 
+def remove_numbers(text):
+    return re.sub(_numbers_re, '', text)
+
+
 def expand_numbers(text):
     return normalize_numbers(text)
 
@@ -70,5 +74,7 @@ def base_cleaners(text, language="english"):
     if (language == "english"):
         text = expand_numbers(text)
         text = expand_abbreviations(text)
+    else:
+        text = remove_numbers(text)
     text = collapse_whitespace(text)
     return text

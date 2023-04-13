@@ -1,4 +1,5 @@
 import os
+from typing import List, Union
 from typeguard import typechecked
 
 from utils import dump_json, load_json, get_random_HEX_name
@@ -68,8 +69,13 @@ class TextConfig(BaseConfig):
     Config for TextProcessor
     """
     @typechecked
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        language: str = "english",
+        cleaners: Union[List[str], None] = None,
+    ):
+        self.language = language.lower()
+        self.cleaners = cleaners
 
 
 class AudioConfig(BaseConfig):
@@ -90,7 +96,7 @@ class AudioConfig(BaseConfig):
         n_mels: int = 80,
         mel_fmin: float = 0.0,
         mel_fmax: float = 8000.0,
-        log_func = "np.log10",
+        log_func: str = "np.log10",
         ref_level_db: float = 1
     ):
         self.sampling_rate = sampling_rate
@@ -129,13 +135,13 @@ class DatasetConfig(BaseConfig):
         self,
         text_config: TextConfig,
         audio_config: AudioConfig,
-        dataset_type = "text",
-        delimiter = " ",
+        dataset_type: str = "text",
+        delimiter: str = " ",
         uid_index: int = 0,
         utt_index: int = 1,
         transcript_path: str = "",
         wavs_path: str = "",
-        validation_split = 0
+        validation_split: Union[int, float] = 0
     ):
         self.text_config = text_config
         self.audio_config = audio_config
@@ -151,7 +157,6 @@ class DatasetConfig(BaseConfig):
         check_argument("uid_index", self.uid_index, min_val=0)
         check_argument("utt_index", self.utt_index, min_val=0)
         assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
-        assert type(self.validation_split) in [int, float], f"validation_split ({self.validation_split}) is invalid"
         if type(self.validation_split) == int: # count of validation samples
             check_argument("validation_split", self.validation_split, min_val=0)
         elif type(self.validation_split) ==  float: # fraction of validation samples
