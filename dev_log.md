@@ -11,11 +11,14 @@
 - [28-03-23](#28-03-23)
 - [29-03-23](#29-03-23)
 - [30-03-23](#30-03-23)
-- [31-03-23](#31-03-23)
 - [01-04-23](#01-04-23)
 - [02-04-23](#02-04-23)
 - [05-04-23](#05-04-23)
 - [08-04-23](#08-04-23)
+- [09-04-23](#09-04-23)
+- [11-04-23](#11-04-23)
+- [12-04-23](#12-04-23)
+- [13-04-23](#13-04-23)
 
 
 ### 26-03-23
@@ -224,3 +227,7 @@
 **{Akarsh}**
 - Added `CheckpointManager()` in `Trainer` that will handle file saving for top n checkpoints based on the loss value.
 - Added `WandbLogger()` in `Trainer` that will handle `wandb` logging and syncing.
+- Added `use_g2p` and updated `TextProcessor` pipeline.
+- Added `g2p_en` by Park Kyu Byong ([src](https://github.com/Kyubyong/g2p)).
+- *NOTE*:
+  - Consider on the fly loading of tokens and mel feats generation (along with resampling and trimming). This will save space, but we wont have control over size of audio.

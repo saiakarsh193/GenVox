@@ -21,7 +21,7 @@ class BaseConfig:
                 svalue = "\n" + BaseConfig.__str__(value, level=level + 1)
             else:
                 svalue = "(" + str(value) + ")"
-            rstr += ("    " * level) + "└── " + key.ljust(20) + svalue + "\n"
+            rstr += ("    " * level) + "└── " + key.ljust(25) + svalue + "\n"
         return rstr.rstrip()
     
     def __repr__(self):
@@ -179,11 +179,12 @@ class TrainerConfig(BaseConfig):
         run_validation: bool = True,
         validation_batch_size: int = 32,
         epochs: int = 100,
+        seed: int = 0,
+        use_cuda: bool = False,
         max_best_models: int = 5,
         wandb_logger: bool = True,
         wandb_auth_key: str = ""
     ):
-        self.model_architecture = "Tacotron2"
         self.project_name = project_name
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -191,6 +192,8 @@ class TrainerConfig(BaseConfig):
         self.run_validation = run_validation
         self.validation_batch_size = validation_batch_size
         self.epochs = epochs
+        self.seed = seed
+        self.use_cuda = use_cuda
         self.max_best_models = max_best_models
         self.wandb_logger = wandb_logger
         self.wandb_auth_key = wandb_auth_key
@@ -205,13 +208,110 @@ class TrainerConfig(BaseConfig):
             assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
 
 
+class Tacotron2Config(BaseConfig):
+    """
+    Config for Tacotron2 TTS architecture
+    """
+    def __init__(
+        self,
+        symbols: Union[List[str], None] = None,
+        n_symbols: Union[int, None] = None,
+        symbols_embedding_dim: int = 512,
+        encoder_kernel_size: int = 5,
+        encoder_n_convolutions: int = 3,
+        encoder_embedding_dim: int = 512,
+        decoder_rnn_dim: int = 1024,
+        prenet_dim: int = 256,
+        max_decoder_steps: int = 1000,
+        gate_threshold: float = 0.5,
+        p_attention_dropout: float = 0.1,
+        p_decoder_dropout: float = 0.1,
+        attention_rnn_dim: int = 1024,
+        attention_dim: int = 128,
+        attention_location_n_filters: int = 32,
+        attention_location_kernel_size: int = 31,
+        postnet_embedding_dim: int = 512,
+        postnet_kernel_size: int = 5,
+        postnet_n_convolutions: int = 5,
+        mask_padding: bool = True
+    ):
+        self.model_architecture = "Tacotron2"
+        # input params
+        self.symbols = symbols
+        self.n_symbols = n_symbols
+        self.symbols_embedding_dim = symbols_embedding_dim
+        # encoder params
+        self.encoder_kernel_size = encoder_kernel_size
+        self.encoder_n_convolutions = encoder_n_convolutions
+        self.encoder_embedding_dim = encoder_embedding_dim
+        # decoder params
+        self.decoder_rnn_dim = decoder_rnn_dim
+        self.prenet_dim = prenet_dim
+        self.max_decoder_steps = max_decoder_steps
+        self.gate_threshold = gate_threshold
+        self.p_attention_dropout = p_attention_dropout
+        self.p_decoder_dropout = p_decoder_dropout
+        # attention
+        self.attention_rnn_dim = attention_rnn_dim
+        self.attention_dim = attention_dim
+        self.attention_location_n_filters = attention_location_n_filters
+        self.attention_location_kernel_size = attention_location_kernel_size
+        # postnet
+        self.postnet_embedding_dim = postnet_embedding_dim
+        self.postnet_kernel_size = postnet_kernel_size
+        self.postnet_n_convolutions = postnet_n_convolutions
+        #
+        self.mask_padding = mask_padding
+
+        if (self.symbols != None):
+            assert len(self.symbols) == self.n_symbols, f"symbols count ({len(self.symbols)}) does not match with n_symbols ({self.n_symbols})"
+        else:
+            self.symbols = load_json(os.path.join("dump", "token_list.json"))
+            self.n_symbols = len(self.symbols)
+        check_argument("symbols_embedding_dim", self.symbols_embedding_dim, min_val=1)
+        check_argument("encoder_kernel_size", self.encoder_kernel_size, min_val=1)
+        check_argument("encoder_n_convolutions", self.encoder_n_convolutions, min_val=1)
+        check_argument("encoder_embedding_dim", self.encoder_embedding_dim, min_val=1)
+        check_argument("decoder_rnn_dim", self.decoder_rnn_dim, min_val=1)
+        check_argument("prenet_dim", self.prenet_dim, min_val=1)
+        check_argument("max_decoder_steps", self.max_decoder_steps, min_val=1, max_val=10000)
+        check_argument("gate_threshold", self.gate_threshold, min_val=0)
+        check_argument("p_attention_dropout", self.p_attention_dropout, min_val=0)
+        check_argument("p_decoder_dropout", self.p_decoder_dropout, min_val=0)
+        check_argument("attention_rnn_dim", self.attention_rnn_dim, min_val=1)
+        check_argument("attention_dim", self.attention_dim, min_val=1)
+        check_argument("attention_location_n_filters", self.attention_location_n_filters, min_val=1)
+        check_argument("attention_location_kernel_size", self.attention_location_kernel_size, min_val=1)
+        check_argument("postnet_embedding_dim", self.postnet_embedding_dim, min_val=1)
+        check_argument("postnet_kernel_size", self.postnet_kernel_size, min_val=1)
+        check_argument("postnet_n_convolutions", self.postnet_n_convolutions, min_val=1)
+
+
+class OptimizerConfig(BaseConfig):
+    """
+    Config for Tacotron2 Adam Optimizer
+    """
+    def __init__(
+        self,
+        learning_rate: float = 1e-3,
+        weight_decay: float = 1e-6
+    ):
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+
+        check_argument("learning_rate", self.learning_rate, min_val=1e-5)
+        check_argument("weight_decay", self.weight_decay, min_val=0)
+
+
 def load_config_from_file(path):
     config_json = load_json(path)
     text_config = TextConfig(**config_json['text_config'])
     audio_config = AudioConfig(**config_json['audio_config'])
     dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json['dataset_config'])
     trainer_config = TrainerConfig(**config_json['trainer_config'])
-    return text_config, audio_config, dataset_config, trainer_config
+    tacotron2_config = Tacotron2Config(**config_json['tacotron2_config'])
+    optimizer_config = OptimizerConfig(**config_json['optimizer_config'])
+    return text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config
 
 def get_json_from_config(config):
     config_json = {}
@@ -221,11 +321,19 @@ def get_json_from_config(config):
     return config_json
 
 @typechecked
-def write_file_from_config(path, text_config: TextConfig, audio_config: AudioConfig, dataset_config: DatasetConfig, trainer_config: TrainerConfig):
+def write_file_from_config(path, 
+                           text_config: TextConfig, 
+                           audio_config: AudioConfig, 
+                           dataset_config: DatasetConfig, 
+                           trainer_config: TrainerConfig, 
+                           tacotron2_config: Tacotron2Config, 
+                           optimizer_config: OptimizerConfig):
     config_json = {
         'text_config': get_json_from_config(text_config),
         'audio_config': get_json_from_config(audio_config),
         'dataset_config': get_json_from_config(dataset_config),
-        'trainer_config': get_json_from_config(trainer_config)
+        'trainer_config': get_json_from_config(trainer_config),
+        'tacotron2_config': get_json_from_config(tacotron2_config),
+        'optimizer_config': get_json_from_config(optimizer_config)
     }
     dump_json(path, config_json)

@@ -1,12 +1,14 @@
 import os
+import random
 import numpy as np
 from typeguard import typechecked
 import torch
 import torch.utils.data
 import wandb
 
-from config import TrainerConfig
+from config import TrainerConfig, Tacotron2Config, OptimizerConfig, AudioConfig
 from utils import load_json, dump_json
+import tacotron2
 
 class TextMelDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_split_type=None):
@@ -119,12 +121,25 @@ class Trainer:
     Trainer class for the data loading and training stage, along with checkpointing and logging
     """
     @typechecked
-    def __init__(self, config: TrainerConfig):
+    def __init__(self, config: TrainerConfig, model_config: Tacotron2Config, optimizer_config: OptimizerConfig, audio_config: AudioConfig):
         exp_dir = "exp"
-        assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
-        os.mkdir(exp_dir)
+        # assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
+        # os.mkdir(exp_dir)
         self.config = config
         print(self.config)
+        self.model_config = model_config
+        print(self.model_config)
+        self.optimizer_config = optimizer_config
+        print(self.optimizer_config)
+        self.audio_config = audio_config
+        print(self.audio_config)
+
+        if (self.config.use_cuda):
+            assert torch.cuda.is_available(), "torch CUDA is not available"
+            self.device = "cuda:0"
+        else:
+            self.device = "cpu"
+
         self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
         if (self.config.wandb_logger):
             self.wandb = WandbLogger(self.config.wandb_auth_key, self.config.project_name, self.config.experiment_id, self.config.model_architecture)
@@ -139,16 +154,29 @@ class Trainer:
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn)
 
+    def prepare_for_training(self):
+        random.seed(self.config.seed)
+        np.random.seed(self.config.seed)
+        torch.manual_seed(self.config.seed)
+        torch.cuda.manual_seed(self.config.seed)
+
+        self.model = tacotron2.Tacotron2(self.model_config, self.audio_config)
+        self.model.to(self.device)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
+        self.criterion = tacotron2.Tacotron2Loss()
+        self.model.train()
+
     def train(self):
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
-        print(f"training is starting (epochs: {self.config.epochs})")
+        print(f"training is starting (epochs: {self.config.epochs}, device: {self.device})")
         for epoch in range(self.config.epochs):
             print(f"training loop epoch: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
                 print(ind)
                 token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
-                # print(token_padded.shape, token_lengths.shape, mel_padded.shape, gate_padded.shape, mel_lengths.shape)
+                print(token_padded.shape, token_lengths.shape, mel_padded.shape, gate_padded.shape, mel_lengths.shape)
+                # print(token_padded)
                 # model forward
                 # model backward
                 # params optim and grad zero
