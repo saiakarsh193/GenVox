@@ -90,8 +90,11 @@ class CheckpointManager:
             checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
             manager_data.insert(add_at_index, (checkpoint_path, loss_value))
             # for saving the torch model
-            # torch.save(model.state_dict(), checkpoint_path)
-        manager_data = manager_data[: self.max_best_models]
+            torch.save(model.state_dict(), checkpoint_path)
+        if (len(manager_data) > self.max_best_models):
+            model_removed_path = manager_data[-1][0]
+            manager_data = manager_data[: -1]
+            os.remove(model_removed_path)
         dump_json(self.manager_path, manager_data)
 
 
@@ -109,8 +112,11 @@ class WandbLogger:
             }
         )
 
-    def log(self, values):
-        pass
+    def define_metric(self, value, summary):
+        wandb.define_metric(value, summary=summary)
+
+    def log(self, values, epoch):
+        wandb.log(values, step=epoch, commit=True)
 
     def finish(self):
         wandb.finish()
@@ -123,8 +129,8 @@ class Trainer:
     @typechecked
     def __init__(self, config: TrainerConfig, model_config: Tacotron2Config, optimizer_config: OptimizerConfig, audio_config: AudioConfig):
         exp_dir = "exp"
-        # assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
-        # os.mkdir(exp_dir)
+        assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
+        os.mkdir(exp_dir)
         self.config = config
         print(self.config)
         self.model_config = model_config
@@ -160,30 +166,43 @@ class Trainer:
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
-        self.model = tacotron2.Tacotron2(self.model_config, self.audio_config)
+        self.model = tacotron2.Tacotron2(self.model_config, self.audio_config, self.config.use_cuda)
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
         self.criterion = tacotron2.Tacotron2Loss()
         self.model.train()
+        print(self.model)
+        if (self.config.wandb_logger):
+            self.wandb.define_metric('loss', summary='min')
 
     def train(self):
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
-        print(f"training is starting (epochs: {self.config.epochs}, device: {self.device})")
+        self.prepare_for_training()
+        print(f"training is starting (epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device})")
+        iteration = 0
         for epoch in range(self.config.epochs):
             print(f"training loop epoch: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
-                print(ind)
-                token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
-                print(token_padded.shape, token_lengths.shape, mel_padded.shape, gate_padded.shape, mel_lengths.shape)
-                # print(token_padded)
-                # model forward
-                # model backward
-                # params optim and grad zero
-                # logger
-                break
-            break
+                # token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
+                # check for manual reset of learning rate in optimizer param_groups
+                self.optimizer.zero_grad() # same as self.model.zero_grad()
+                x, y = self.model.parse_batch(batch)
+                y_pred = self.model(x)
+                loss = self.criterion(y_pred, y)
+                loss_value = loss.item()
+                loss.backward()
+                # check for torch.nn.utils.clip_grad_norm_()
+                self.optimizer.step()
+                print(f"epoch: ({epoch}/{self.config.epochs}::{ind}), iteration: {iteration}, loss: {loss_value}")
+                iteration += 1
 
+                # logging
+                if (self.config.wandb_logger):
+                    self.wandb.log({'loss': loss_value}, epoch=iteration)
+                # checkpoint saving
+                self.checkpoint_manager.save_model(iteration, self.model, loss_value)
+                # validation
         if (self.config.wandb_logger):
             self.wandb.finish()
 

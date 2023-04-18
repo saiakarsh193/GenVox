@@ -55,7 +55,7 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_testing",
-    wandb_logger=False,
+    wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=128,
     num_loader_workers=0,
@@ -66,7 +66,7 @@ tacotron2_config = Tacotron2Config()
 
 optimizer_config = OptimizerConfig()
 
-trainer = Trainer(trainer_config, tacotron2_config, optimizer_config)
+trainer = Trainer(trainer_config, tacotron2_config, optimizer_config, audio_config)
 trainer.train()
 
 # write_file_from_config('config.json', text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)

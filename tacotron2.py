@@ -8,16 +8,19 @@ from config import Tacotron2Config, AudioConfig
 
 ######################
 
-def to_gpu(x):
+def to_gpu(x, use_cuda):
     x = x.contiguous()
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and use_cuda:
         x = x.cuda(non_blocking=True)
     return torch.autograd.Variable(x)
 
-def get_mask_from_lengths(lengths):
+def get_mask_from_lengths(lengths, use_cuda):
     max_len = torch.max(lengths).item()
-    ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
+    if torch.cuda.is_available() and use_cuda:
+        ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
+    else:
+        ids = torch.arange(0, max_len, out=torch.LongTensor(max_len))
     mask = (ids < lengths.unsqueeze(1)).bool()
     return mask
 
@@ -253,7 +256,8 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, model_params: Tacotron2Config, audio_params: AudioConfig):
+    def __init__(self, model_params: Tacotron2Config, audio_params: AudioConfig, use_cuda: bool):
+        self.use_cuda = use_cuda
         super(Decoder, self).__init__()
         self.n_mel_channels = audio_params.n_mels
         self.n_frames_per_step = 1
@@ -450,7 +454,7 @@ class Decoder(nn.Module):
         decoder_inputs = self.prenet(decoder_inputs)
 
         self.initialize_decoder_states(
-            memory, mask=~get_mask_from_lengths(memory_lengths))
+            memory, mask=~get_mask_from_lengths(memory_lengths, self.use_cuda))
 
         mel_outputs, gate_outputs, alignments = [], [], []
         while len(mel_outputs) < decoder_inputs.size(0) - 1:
@@ -506,8 +510,9 @@ class Decoder(nn.Module):
 
 
 class Tacotron2(nn.Module):
-    def __init__(self, model_params: Tacotron2Config, audio_params: AudioConfig):
+    def __init__(self, model_params: Tacotron2Config, audio_params: AudioConfig, use_cuda: bool):
         super(Tacotron2, self).__init__()
+        self.use_cuda = use_cuda
         self.mask_padding = model_params.mask_padding
         self.n_mel_channels = audio_params.n_mels
         self.n_frames_per_step = 1
@@ -517,18 +522,18 @@ class Tacotron2(nn.Module):
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
         self.encoder = Encoder(model_params)
-        self.decoder = Decoder(model_params, audio_params)
+        self.decoder = Decoder(model_params, audio_params, self.use_cuda)
         self.postnet = Postnet(model_params, audio_params)
+        self.to_gpu = lambda value: to_gpu(value, self.use_cuda)
 
     def parse_batch(self, batch):
-        text_padded, input_lengths, mel_padded, gate_padded, \
-            output_lengths = batch
-        text_padded = to_gpu(text_padded).long()
-        input_lengths = to_gpu(input_lengths).long()
+        text_padded, input_lengths, mel_padded, gate_padded, output_lengths = batch
+        text_padded = self.to_gpu(text_padded).long()
+        input_lengths = self.to_gpu(input_lengths).long()
         max_len = torch.max(input_lengths.data).item()
-        mel_padded = to_gpu(mel_padded).float()
-        gate_padded = to_gpu(gate_padded).float()
-        output_lengths = to_gpu(output_lengths).long()
+        mel_padded = self.to_gpu(mel_padded).float()
+        gate_padded = self.to_gpu(gate_padded).float()
+        output_lengths = self.to_gpu(output_lengths).long()
 
         return (
             (text_padded, input_lengths, mel_padded, max_len, output_lengths),
@@ -536,7 +541,7 @@ class Tacotron2(nn.Module):
 
     def parse_output(self, outputs, output_lengths=None):
         if self.mask_padding and output_lengths is not None:
-            mask = ~get_mask_from_lengths(output_lengths)
+            mask = ~get_mask_from_lengths(output_lengths, self.use_cuda)
             mask = mask.expand(self.n_mel_channels, mask.size(0), mask.size(1))
             mask = mask.permute(1, 0, 2)
 
