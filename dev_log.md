@@ -238,3 +238,4 @@
 - Omitting param groups of optimizer update before every iteration. Later on add and experiment. ([src](https://github.com/NVIDIA/tacotron2/blob/185cd24e046cc1304b4f8e564734d2498c6e2e6f/train.py#L210)).
 - `optimizer.zero_grad()` vs `model.zero_grad()` ([src](https://discuss.pytorch.org/t/model-zero-grad-or-optimizer-zero-grad/28426/3)). They are the same ([src2](https://stackoverflow.com/questions/48001598/why-do-we-need-to-call-zero-grad-in-pytorch)).
 - Decide variable to log (gpu, etc) and config values.
+- Add timers for training loop and estimators.

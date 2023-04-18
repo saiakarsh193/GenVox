@@ -21,7 +21,7 @@ class BaseConfig:
                 svalue = "\n" + BaseConfig.__str__(value, level=level + 1)
             else:
                 svalue = "(" + str(value) + ")"
-            rstr += ("    " * level) + "└── " + key.ljust(25) + svalue + "\n"
+            rstr += ("    " * level) + "└── " + key.ljust(35) + svalue + "\n"
         return rstr.rstrip()
     
     def __repr__(self):

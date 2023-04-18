@@ -148,7 +148,7 @@ class Trainer:
 
         self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
         if (self.config.wandb_logger):
-            self.wandb = WandbLogger(self.config.wandb_auth_key, self.config.project_name, self.config.experiment_id, self.config.model_architecture)
+            self.wandb = WandbLogger(self.config.wandb_auth_key, self.config.project_name, self.config.experiment_id, self.model_config.model_architecture)
 
         self.collate_fn = TextMelCollate()
         self.train_dataset = TextMelDataset(dataset_split_type="train")
@@ -194,7 +194,7 @@ class Trainer:
                 loss.backward()
                 # check for torch.nn.utils.clip_grad_norm_()
                 self.optimizer.step()
-                print(f"epoch: ({epoch}/{self.config.epochs}::{ind}), iteration: {iteration}, loss: {loss_value}")
+                print(f"epoch: ({epoch + 1}/{self.config.epochs}::{ind}), iteration: {iteration}, loss: {loss_value}")
                 iteration += 1
 
                 # logging
