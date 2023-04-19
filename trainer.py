@@ -180,12 +180,13 @@ class Trainer:
         self.prepare_for_training()
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
-        log_print(f"training is starting (epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device})")
+        log_print(f"TRAINING START")
+        log_print(f"epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device}")
         iteration = 0
         avg_time_epoch = 0
         for epoch in range(self.config.epochs):
             start_epoch = time.time() # start time of epoch
-            log_print(f"training loop epoch start: {epoch + 1} / {self.config.epochs}")
+            log_print(f"epoch start: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
                 # token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
@@ -211,13 +212,14 @@ class Trainer:
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
-            log_print(f"training loop epoch end: {epoch + 1} / {self.config.epochs}, time: {sec_to_formatted_time(end_epoch - start_epoch)}")
+            log_print(f"epoch end: {epoch + 1} / {self.config.epochs}, time: {sec_to_formatted_time(end_epoch - start_epoch)}")
             # calculate ETA
             remaining_epochs = self.config.epochs - (epoch + 1)
             remaining_time = remaining_epochs * avg_time_epoch
             log_print(f"estimated time remaining: {sec_to_formatted_time(remaining_time)} -> training ending at {current_formatted_time(remaining_time)}")
         if (self.config.wandb_logger):
             self.wandb.finish()
+        log_print(f"TRAINING END")
 
 
 if __name__ == "__main__":
