@@ -132,13 +132,9 @@ class Trainer:
         assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
         os.mkdir(exp_dir)
         self.config = config
-        print(self.config)
         self.model_config = model_config
-        print(self.model_config)
         self.optimizer_config = optimizer_config
-        print(self.optimizer_config)
         self.audio_config = audio_config
-        print(self.audio_config)
 
         if (self.config.use_cuda):
             assert torch.cuda.is_available(), "torch CUDA is not available"
@@ -166,6 +162,10 @@ class Trainer:
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
+        print(self.config)
+        print(self.model_config)
+        print(self.optimizer_config)
+        print(self.audio_config)
         self.model = tacotron2.Tacotron2(self.model_config, self.audio_config, self.config.use_cuda)
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
