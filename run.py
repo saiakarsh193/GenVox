@@ -56,7 +56,7 @@ dataset_processor()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="ljspeech_fullrun_1",
+    experiment_id="ljspeech_fullrun_2",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,
@@ -64,7 +64,7 @@ trainer_config = TrainerConfig(
     run_validation=True,
     use_cuda=True,
     epochs=120,
-    iters_for_checkpoint=1000
+    iters_for_checkpoint=500
 )
 
 tacotron2_config = Tacotron2Config()
