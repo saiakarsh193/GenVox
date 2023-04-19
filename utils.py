@@ -78,8 +78,9 @@ def sec_to_formatted_time(seconds):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
 
-def current_formatted_time():
+def current_formatted_time(sec_add=0):
     dt_now = datetime.datetime.now()
+    dt_now = dt_now + datetime.timedelta(0, sec_add)
     return dt_now.strftime("%Y-%m-%d %H:%M:%S")
 
 def log_print(*args):
