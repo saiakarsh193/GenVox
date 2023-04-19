@@ -182,6 +182,7 @@ class TrainerConfig(BaseConfig):
         seed: int = 0,
         use_cuda: bool = False,
         max_best_models: int = 5,
+        iters_for_checkpoint: int = 1,
         wandb_logger: bool = True,
         wandb_auth_key: str = ""
     ):
@@ -195,6 +196,7 @@ class TrainerConfig(BaseConfig):
         self.seed = seed
         self.use_cuda = use_cuda
         self.max_best_models = max_best_models
+        self.iters_for_checkpoint = iters_for_checkpoint
         self.wandb_logger = wandb_logger
         self.wandb_auth_key = wandb_auth_key
 
@@ -204,6 +206,7 @@ class TrainerConfig(BaseConfig):
             print(f"experiment_id not provided, hence randomly generated ({self.experiment_id})")
         check_argument("epochs", self.epochs, min_val=1)
         check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
+        check_argument("iters_for_checkpoint", self.iters_for_checkpoint, min_val=1)
         if (self.wandb_logger):
             assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
 
@@ -276,7 +279,7 @@ class Tacotron2Config(BaseConfig):
         check_argument("decoder_rnn_dim", self.decoder_rnn_dim, min_val=1)
         check_argument("prenet_dim", self.prenet_dim, min_val=1)
         check_argument("max_decoder_steps", self.max_decoder_steps, min_val=1, max_val=10000)
-        check_argument("gate_threshold", self.gate_threshold, min_val=0)
+        check_argument("gate_threshold", self.gate_threshold, min_val=0, max_val=1)
         check_argument("p_attention_dropout", self.p_attention_dropout, min_val=0)
         check_argument("p_decoder_dropout", self.p_decoder_dropout, min_val=0)
         check_argument("attention_rnn_dim", self.attention_rnn_dim, min_val=1)

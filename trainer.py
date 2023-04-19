@@ -115,6 +115,9 @@ class WandbLogger:
 
     def define_metric(self, value, summary):
         wandb.define_metric(value, summary=summary)
+    
+    def Image(img, caption=""):
+        wandb.Image(img, caption=caption)
 
     def log(self, values, epoch):
         wandb.log(values, step=epoch, commit=True)
@@ -155,7 +158,7 @@ class Trainer:
             print("run_validation is set to True")
             self.validation_dataset = TextMelDataset(dataset_split_type="validation")
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
-            self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn)
+            self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
 
     def prepare_for_training(self):
         random.seed(self.config.seed)
@@ -175,6 +178,38 @@ class Trainer:
         print(self.model)
         if (self.config.wandb_logger):
             self.wandb.define_metric('loss', summary='min')
+            if (self.config.run_validation):
+                self.wandb.define_metric('validation_loss', summary='min')
+
+    def validation(self, iteration):
+        assert self.config.run_validation, "run_validation was set as False"
+        self.model.eval()
+        log_print(f"validation start")
+        start_valid = time.time()
+        valid_loss = 0
+        with torch.no_grad():
+            for ind, batch in enumerate(self.validation_dataloader):
+                x, y = self.model.parse_batch(batch)
+                y_pred = self.model(x)
+                loss = self.criterion(y_pred, y)
+                loss_value = loss.item()
+                valid_loss += loss_value
+        valid_loss /= len(self.validation_dataloader)
+        end_valid = time.time()
+        log_print(f"validation end, time: {sec_to_formatted_time(end_valid - start_valid)}")
+        # logging
+        if (self.config.wandb_logger):
+            self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
+            mel_postnet = y_pred[1]
+            mel_target = y[0]
+            ind = random.randrange(0, mel_postnet.size(0))
+            mel_target = mel_target[ind].cpu().numpy()
+            mel_predicted = mel_postnet[ind].cpu().numpy()
+            mel_target = self.wandb.Image(mel_target, caption='mel ground truth')
+            mel_predicted = self.wandb.Image(mel_predicted, caption='mel predicted')
+            self.wandb.log({'mel_predicted': mel_predicted}, epoch=iteration)
+            self.wandb.log({'mel_target': mel_target}, epoch=iteration)
+        self.model.train()
 
     def train(self):
         self.prepare_for_training()
@@ -206,9 +241,11 @@ class Trainer:
                 # logging
                 if (self.config.wandb_logger):
                     self.wandb.log({'loss': loss_value}, epoch=iteration)
-                # checkpoint saving
-                self.checkpoint_manager.save_model(iteration, self.model, loss_value)
-                # validation
+                if (iteration % self.config.iters_for_checkpoint == 0):
+                    # checkpoint saving
+                    self.checkpoint_manager.save_model(iteration, self.model, loss_value)
+                    # validation
+                    self.validation(iteration)
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
