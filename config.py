@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Union, Dict
 from typeguard import typechecked
 
 from utils import dump_json, load_json, get_random_HEX_name
@@ -212,9 +212,10 @@ class Tacotron2Config(BaseConfig):
     """
     Config for Tacotron2 TTS architecture
     """
+    @typechecked
     def __init__(
         self,
-        symbols: Union[List[str], None] = None,
+        symbols: Union[Dict, None] = None,
         n_symbols: Union[int, None] = None,
         symbols_embedding_dim: int = 512,
         encoder_kernel_size: int = 5,
@@ -291,6 +292,7 @@ class OptimizerConfig(BaseConfig):
     """
     Config for Tacotron2 Adam Optimizer
     """
+    @typechecked
     def __init__(
         self,
         learning_rate: float = 1e-3,
@@ -309,6 +311,7 @@ def load_config_from_file(path):
     audio_config = AudioConfig(**config_json['audio_config'])
     dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json['dataset_config'])
     trainer_config = TrainerConfig(**config_json['trainer_config'])
+    del config_json['tacotron2_config']['model_architecture']
     tacotron2_config = Tacotron2Config(**config_json['tacotron2_config'])
     optimizer_config = OptimizerConfig(**config_json['optimizer_config'])
     return text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config
