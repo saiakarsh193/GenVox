@@ -21,6 +21,7 @@ class TTSModel:
             self.device = "cuda:0"
         else:
             self.device = "cpu"
+        print(f"running inference on device: {self.device}")
         # loading configs
         text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config = load_config_from_file(self.config_path)
         self.text_config = text_config
@@ -41,19 +42,21 @@ class TTSModel:
         self.model.eval()
     
     def __call__(self, text: str):
-        print(text)
-        tokens = self.text_processor.tokenize(text)
-        tokens = [self.token_map[tk] for tk in tokens]
-        tokens = torch.IntTensor(tokens).unsqueeze(0)
-        y_pred = self.model.inference(tokens)
-        mel, mel_postnet, *_ = y_pred
-        print(mel_postnet.shape)
+        with torch.no_grad():
+            print(text)
+            tokens = self.text_processor.tokenize(text)
+            tokens = [self.token_map[tk] for tk in tokens]
+            tokens = torch.IntTensor(tokens).unsqueeze(0).to(self.device)
+            y_pred = self.model.inference(tokens)
+            mel, mel_postnet, *_ = y_pred
+            mel_postnet = mel_postnet.squeeze(0)
+            mel_postnet = mel_postnet.cpu().numpy()
         return mel_postnet
 
 
 if __name__ == "__main__":
-    tts = TTSModel('config.json', 'exp/checkpoint_0001.pt')
+    tts = TTSModel('config.json', 'exp/checkpoint_2740.pt', True)
     mel = tts('hello world this is a sample sentence')
     plt.figure()
     plt.imshow(mel, aspect='auto', origin='lower')
-    plt.show()
+    plt.savefig('temp.png')
