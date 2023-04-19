@@ -124,6 +124,10 @@ def mel2fft(mel_matrix, fs, n_fft, n_mels, fmin, fmax):
     inverse_basis = np.linalg.pinv(mel_basis)
     return np.matmul(inverse_basis, mel_matrix)
 
+def save_melplot(mel, path):
+    plt.figure()
+    plt.imshow(mel, aspect='auto', origin='lower')
+    plt.savefig(path)
 
 if __name__ == "__main__":
     path = "dump/wavs/LJ001-0009.wav"

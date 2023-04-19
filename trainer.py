@@ -9,6 +9,7 @@ import time
 
 from config import TrainerConfig, Tacotron2Config, OptimizerConfig, AudioConfig
 from utils import load_json, dump_json, sec_to_formatted_time, log_print, current_formatted_time
+from audio import save_melplot
 import tacotron2
 
 class TextMelDataset(torch.utils.data.Dataset):
@@ -116,11 +117,11 @@ class WandbLogger:
     def define_metric(self, value, summary):
         wandb.define_metric(value, summary=summary)
     
-    def Image(img, caption=""):
+    def Image(self, img, caption=""):
         wandb.Image(img, caption=caption)
 
-    def log(self, values, epoch):
-        wandb.log(values, step=epoch, commit=True)
+    def log(self, values, epoch, commit=False):
+        wandb.log(values, step=epoch, commit=commit)
 
     def finish(self):
         wandb.finish()
@@ -184,7 +185,7 @@ class Trainer:
     def validation(self, iteration):
         assert self.config.run_validation, "run_validation was set as False"
         self.model.eval()
-        log_print(f"validation start")
+        log_print(f"validation start, batch_count: {len(self.validation_dataloader)}, device: {self.device}")
         start_valid = time.time()
         valid_loss = 0
         with torch.no_grad():
@@ -200,15 +201,21 @@ class Trainer:
         # logging
         if (self.config.wandb_logger):
             self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
+            mel_length = x[4]
             mel_postnet = y_pred[1]
             mel_target = y[0]
             ind = random.randrange(0, mel_postnet.size(0))
-            mel_target = mel_target[ind].cpu().numpy()
-            mel_predicted = mel_postnet[ind].cpu().numpy()
-            mel_target = self.wandb.Image(mel_target, caption='mel ground truth')
-            mel_predicted = self.wandb.Image(mel_predicted, caption='mel predicted')
-            self.wandb.log({'mel_predicted': mel_predicted}, epoch=iteration)
+            mel_length = x[4][ind].item()
+
+            mel_target = mel_target[ind, :, : mel_length].cpu().numpy()
+            save_melplot(mel_target, os.path.join("exp", "mel_tar.png"))
+            mel_target = self.wandb.Image(os.path.join("exp", "mel_tar.png"), caption='mel ground truth')
             self.wandb.log({'mel_target': mel_target}, epoch=iteration)
+
+            mel_predicted = mel_postnet[ind, :, : mel_length].cpu().numpy()
+            save_melplot(mel_predicted, os.path.join("exp", "mel_pred.png"))
+            mel_predicted = self.wandb.Image(os.path.join("exp", "mel_pred.png"), caption='mel predicted')
+            self.wandb.log({'mel_predicted': mel_predicted}, epoch=iteration)
         self.model.train()
 
     def train(self):
@@ -235,17 +242,17 @@ class Trainer:
                 # check for torch.nn.utils.clip_grad_norm_()
                 self.optimizer.step()
                 end_iter = time.time() # end time of iteration
-                log_print(f"epoch: ({epoch + 1} / {self.config.epochs} -> {ind + 1} / {len(self.train_dataloader)}), iteration: {iteration}, loss: {loss_value: .4f}, time: {sec_to_formatted_time(end_iter - start_iter)}")
+                log_print(f"epoch: ({epoch + 1} / {self.config.epochs} -> {ind + 1} / {len(self.train_dataloader)}), iteration: {iteration}, loss: {loss_value: .4f}, time: {end_iter - start_iter} s")
                 iteration += 1
 
-                # logging
-                if (self.config.wandb_logger):
-                    self.wandb.log({'loss': loss_value}, epoch=iteration)
                 if (iteration % self.config.iters_for_checkpoint == 0):
                     # checkpoint saving
                     self.checkpoint_manager.save_model(iteration, self.model, loss_value)
                     # validation
                     self.validation(iteration)
+                # logging
+                if (self.config.wandb_logger):
+                    self.wandb.log({'loss': loss_value}, epoch=iteration, commit=True)
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time

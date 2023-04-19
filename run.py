@@ -4,7 +4,8 @@ from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, Train
 from processors import DownloadProcessor, DatasetProcessor
 from trainer import Trainer
 
-dataset_path = "data/LJSpeech_sample"
+dataset_path = "data/LJSpeech-1.1"
+# dataset_path = "data/LJSpeech_test"
 # dataset_path = "data/youtube_3b1b"
 
 # download_config = DownloadConfig(
@@ -47,26 +48,29 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
-    validation_split=0
+    validation_split=500
 )
 
-# dataset_processor = DatasetProcessor(dataset_config)
-# dataset_processor()
+dataset_processor = DatasetProcessor(dataset_config)
+dataset_processor()
 
 trainer_config = TrainerConfig(
-    project_name="dev_testing",
+    project_name="dev_run_ada",
+    experiment_id="ljspeech_fullrun_1",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
-    batch_size=128,
-    num_loader_workers=0,
-    run_validation=False
+    batch_size=32,
+    num_loader_workers=4,
+    run_validation=True,
+    use_cuda=True,
+    epochs=120,
+    iters_for_checkpoint=1000
 )
 
 tacotron2_config = Tacotron2Config()
-
 optimizer_config = OptimizerConfig()
+
+write_file_from_config('config.json', text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
 
 trainer = Trainer(trainer_config, tacotron2_config, optimizer_config, audio_config)
 trainer.train()
-
-# write_file_from_config('config.json', text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
