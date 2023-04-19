@@ -2,6 +2,7 @@ import random
 import yt_dlp
 import scipy.io
 import json
+import datetime
 import numpy as np
 
 def download_YT_mp3(link, target, verbose=False):
@@ -76,6 +77,13 @@ def sec_to_formatted_time(seconds):
     if (days > 0):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
+
+def current_formatted_time():
+    dt_now = datetime.datetime.now()
+    return dt_now.strftime("%Y-%m-%d %H:%M:%S")
+
+def log_print(*args):
+    print(current_formatted_time(), *args)
 
 def dump_json(path, data):
     with open(path, 'w') as f:

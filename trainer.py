@@ -8,7 +8,7 @@ import wandb
 import time
 
 from config import TrainerConfig, Tacotron2Config, OptimizerConfig, AudioConfig
-from utils import load_json, dump_json, sec_to_formatted_time
+from utils import load_json, dump_json, sec_to_formatted_time, log_print
 import tacotron2
 
 class TextMelDataset(torch.utils.data.Dataset):
@@ -180,12 +180,12 @@ class Trainer:
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
         self.prepare_for_training()
-        print(f"training is starting (epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device})")
+        log_print(f"training is starting (epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device})")
         iteration = 0
         avg_time_epoch = 0
         for epoch in range(self.config.epochs):
             start_epoch = time.time() # start time of epoch
-            print(f"training loop epoch: {epoch + 1} / {self.config.epochs}")
+            log_print(f"training loop epoch start: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
                 # token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
@@ -199,7 +199,7 @@ class Trainer:
                 # check for torch.nn.utils.clip_grad_norm_()
                 self.optimizer.step()
                 end_iter = time.time() # end time of iteration
-                print(f"epoch: ({epoch + 1}/{self.config.epochs}::{ind}), iteration: {iteration}, loss: {loss_value}, time: " + sec_to_formatted_time(end_iter - start_iter))
+                log_print(f"epoch: ({epoch + 1}/{self.config.epochs}->{ind + 1}/{len(self.train_dataloader)}), iteration: {iteration}, loss: {loss_value}, time: {sec_to_formatted_time(end_iter - start_iter)}")
                 iteration += 1
 
                 # logging
@@ -211,11 +211,11 @@ class Trainer:
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
-            print(f"epoch: ({epoch + 1}/{self.config.epochs}), time: " + sec_to_formatted_time(end_epoch - start_epoch))
-            #calculate estimated time
+            log_print(f"training loop epoch end: ({epoch + 1}/{self.config.epochs}), time: {sec_to_formatted_time(end_epoch - start_epoch)}")
+            # calculate ETA
             remaining_epochs = self.config.epochs - (epoch + 1)
             remaining_time = remaining_epochs * avg_time_epoch
-            print(f"Estimated time remaining: " + sec_to_formatted_time(remaining_time))
+            log_print(f"estimated time remaining:" + sec_to_formatted_time(remaining_time))
         if (self.config.wandb_logger):
             self.wandb.finish()
 
