@@ -36,13 +36,13 @@ Read [devlog](dev_log.md) for more details.
   - [x] Features generation
 
 ### Phase 2
-- [ ] Torch Model
-- [ ] Trainer
+- [x] Torch Model
+- [x] Trainer
 - [ ] Distributed
 
 ### Explore
 - [ ] argparse
-- [ ] logging
+- [x] logging
 - [ ] pip standards (with docstrings)
 - [ ] aeneas
 - [x] youtubedl

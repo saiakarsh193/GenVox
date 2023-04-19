@@ -118,7 +118,7 @@ class WandbLogger:
         wandb.define_metric(value, summary=summary)
     
     def Image(self, img, caption=""):
-        wandb.Image(img, caption=caption)
+        return wandb.Image(img, caption=caption)
 
     def log(self, values, epoch, commit=False):
         wandb.log(values, step=epoch, commit=commit)

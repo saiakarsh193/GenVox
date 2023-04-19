@@ -239,3 +239,12 @@
 - `optimizer.zero_grad()` vs `model.zero_grad()` ([src](https://discuss.pytorch.org/t/model-zero-grad-or-optimizer-zero-grad/28426/3)). They are the same ([src2](https://stackoverflow.com/questions/48001598/why-do-we-need-to-call-zero-grad-in-pytorch)).
 - Decide variable to log (gpu, etc) and config values.
 - Add timers for training loop and estimators.
+
+
+### 19-04-23
+**{Akarsh}**
+- Added evaluation in training loop with timers and estimators.
+- Integrated wandb that supports images. Updated `WandbLogger` to abstract direct `wandb` API.
+  - `commit=True` in `wandb.log()` also increments the iteration value ([src](https://docs.wandb.ai/ref/python/log)).
+- Added `inference.py` that contains the `TTSModel()` class for handling the inference.
+- Added time formatting in `utils.py` and log printing.

@@ -2,6 +2,7 @@ import os
 import torch
 import matplotlib.pyplot as plt
 
+from audio import save_melplot
 from config import load_config_from_file
 from processors import TextProcessor
 import tacotron2
@@ -57,6 +58,4 @@ class TTSModel:
 if __name__ == "__main__":
     tts = TTSModel('config.json', 'exp/checkpoint_2740.pt', True)
     mel = tts('hello world this is a sample sentence')
-    plt.figure()
-    plt.imshow(mel, aspect='auto', origin='lower')
-    plt.savefig('temp.png')
+    save_melplot(mel, 'temp.png')
