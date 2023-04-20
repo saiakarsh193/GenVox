@@ -8,7 +8,7 @@ import wandb
 import time
 
 from config import TrainerConfig, Tacotron2Config, OptimizerConfig, AudioConfig
-from utils import load_json, dump_json, sec_to_formatted_time, log_print, current_formatted_time
+from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
 from audio import save_melplot
 import tacotron2
 
@@ -185,7 +185,7 @@ class Trainer:
     def validation(self, iteration):
         assert self.config.run_validation, "run_validation was set as False"
         self.model.eval()
-        log_print(f"validation start, batch_count: {len(self.validation_dataloader)}, device: {self.device}")
+        log_print(f"validation start -> validation_batch_count: {len(self.validation_dataloader)}")
         start_valid = time.time()
         valid_loss = 0
         with torch.no_grad():
@@ -197,7 +197,7 @@ class Trainer:
                 valid_loss += loss_value
         valid_loss /= len(self.validation_dataloader)
         end_valid = time.time()
-        log_print(f"validation end, time: {sec_to_formatted_time(end_valid - start_valid)}")
+        log_print(f"validation end -> validation_loss: {valid_loss: .3f}, time_taken: {sec_to_formatted_time(end_valid - start_valid)}")
         # logging
         if (self.config.wandb_logger):
             self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
@@ -222,7 +222,8 @@ class Trainer:
         self.prepare_for_training()
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
-        log_print(f"TRAINING START")
+        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
+        start_train = time.time() # start time of training
         log_print(f"epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device}")
         iteration = 0
         avg_time_epoch = 0
@@ -242,7 +243,7 @@ class Trainer:
                 # check for torch.nn.utils.clip_grad_norm_()
                 self.optimizer.step()
                 end_iter = time.time() # end time of iteration
-                log_print(f"epoch: ({epoch + 1} / {self.config.epochs} -> {ind + 1} / {len(self.train_dataloader)}), iteration: {iteration}, loss: {loss_value: .4f}, time: {end_iter - start_iter} s")
+                log_print(f"({epoch + 1} :: {ind + 1} / {len(self.train_dataloader)}) -> iteration: {iteration}, loss: {loss_value: .3f}, time_taken: {end_iter - start_iter: .2f} s")
                 iteration += 1
 
                 if (iteration % self.config.iters_for_checkpoint == 0):
@@ -256,14 +257,17 @@ class Trainer:
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
-            log_print(f"epoch end: {epoch + 1} / {self.config.epochs}, time: {sec_to_formatted_time(end_epoch - start_epoch)}")
+            log_print(f"epoch end -> time_taken: {sec_to_formatted_time(end_epoch - start_epoch)}")
             # calculate ETA
             remaining_epochs = self.config.epochs - (epoch + 1)
             remaining_time = remaining_epochs * avg_time_epoch
             log_print(f"estimated time remaining: {sec_to_formatted_time(remaining_time)} -> training ending at {current_formatted_time(remaining_time)}")
+            print()
         if (self.config.wandb_logger):
             self.wandb.finish()
-        log_print(f"TRAINING END")
+        center_print(f"TRAINING END ({current_formatted_time()})", space_factor=0.35)
+        end_train = time.time() # end time of training
+        print(f"total time of training: {sec_to_formatted_time(end_train - start_train)}")
 
 
 if __name__ == "__main__":

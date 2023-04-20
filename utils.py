@@ -6,7 +6,7 @@ import yaml
 import datetime
 import numpy as np
 
-def download_YT_mp3(link, target, verbose=False):
+def download_YT_mp3(link, target, verbose = False):
     # download options for youtube_dl
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -29,7 +29,7 @@ def is_youtube_link(link):
         return True
     return False
 
-def get_random_HEX_name(size = 60):
+def get_random_HEX_name(size: int = 60):
     return hex(random.getrandbits(size))[2: ]
 
 def dBFS(signal):
@@ -60,7 +60,7 @@ def get_silent_signal_ind(signal, fs, silence_threshold):
     right_ind = signal.shape[0] - right_ind
     return left_ind, right_ind
 
-def trim_audio_silence(input_path, output_path, silence_threshold=-50.0):
+def trim_audio_silence(input_path, output_path, silence_threshold: float = -50.0):
     fs, wav = scipy.io.wavfile.read(input_path)
     left_ind, right_ind = get_silent_signal_ind(wav, fs, silence_threshold)
     assert left_ind < right_ind, "empty audio signal given for trimming silence"
@@ -79,10 +79,16 @@ def sec_to_formatted_time(seconds):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
 
-def current_formatted_time(sec_add=0):
+def current_formatted_time(sec_add: int = 0):
     dt_now = datetime.datetime.now()
     dt_now = dt_now + datetime.timedelta(0, sec_add)
     return dt_now.strftime("%Y-%m-%d %H:%M:%S")
+
+def center_print(sentence: str, space_factor: float = 0.5):
+    pad_left = (100 - len(sentence))
+    space_pad = len(sentence) + int(pad_left * space_factor)
+    sentence = sentence.center(space_pad, ' ').center(100, '=')
+    print(sentence)
 
 def log_print(*args):
     print(current_formatted_time(), *args)
