@@ -1,8 +1,9 @@
 import os
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from audio import save_melplot
+from audio import save_melplot, save_sigplot, db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal
 from config import load_config_from_file
 from processors import TextProcessor
 import tacotron2
@@ -54,8 +55,20 @@ class TTSModel:
             mel_postnet = mel_postnet.cpu().numpy()
         return mel_postnet
 
+    def mel2audio(self, mel):
+        mel_mag = db_to_amplitude(mel)
+        mag = mel2fft(mel_mag, fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
+        ang = np.random.random(mag.shape).astype(np.float32)
+        st_comb = combine_magnitude_phase(mag, ang)
+        ist = istft(st_comb, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)
+        ist[(ist > 1) | (ist < -1)] = 0
+        sig = normalize_signal(ist[500: -500])
+        return self.audio_config.sampling_rate, sig
+
 
 if __name__ == "__main__":
     tts = TTSModel('config.json', 'exp/checkpoint_2740.pt', True)
     mel = tts('hello world this is a sample sentence')
-    save_melplot(mel, 'temp.png')
+    save_melplot(mel, 'mel_pred.png')
+    fs, wav = tts.mel2audio(mel)
+    save_sigplot(wav, 'sig_pred.png')

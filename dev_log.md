@@ -19,6 +19,8 @@
 - [11-04-23](#11-04-23)
 - [12-04-23](#12-04-23)
 - [13-04-23](#13-04-23)
+- [18-04-23](#18-04-23)
+- [19-04-23](#19-04-23)
 
 
 ### 26-03-23
@@ -248,3 +250,4 @@
   - `commit=True` in `wandb.log()` also increments the iteration value ([src](https://docs.wandb.ai/ref/python/log)).
 - Added `inference.py` that contains the `TTSModel()` class for handling the inference.
 - Added time formatting in `utils.py` and log printing.
+- Difference between numpy saving formats `.npy` and `.npz` and where to use them ([src](https://stackoverflow.com/questions/54238670/what-is-the-advantage-of-saving-npz-files-instead-of-npy-in-python-regard)).

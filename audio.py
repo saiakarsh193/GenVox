@@ -20,7 +20,7 @@ def normalize_signal(y):
     norm_fac = max(abs(np.min(y)), abs(np.max(y)))
     return (y / norm_fac).astype(np.float32)
 
-def amplitude_to_db(spectrogram, amin=1e-5, ref=1, log_func="np.log10"):
+def amplitude_to_db(spectrogram, amin = 1e-5, ref = 1, log_func = "np.log10"):
     if (log_func == "np.log"):
         log_func = np.log
     elif (log_func == "np.log10"):
@@ -30,6 +30,18 @@ def amplitude_to_db(spectrogram, amin=1e-5, ref=1, log_func="np.log10"):
     db = 20 * log_func(np.maximum(amin, power_spectrogram))
     db -= 20 * log_func(np.maximum(amin, ref))
     return db
+
+def db_to_amplitude(db, amin = 1e-5, ref = 1, log_func = "np.log10"):
+    if (log_func == "np.log"):
+        log_func = np.log
+        inv_log_func = np.exp
+    elif (log_func == "np.log10"):
+        log_func = np.log10
+        inv_log_func = lambda value: np.power(10, value)
+    db += 20 * log_func(np.maximum(amin, ref))
+    power_spectrogram = inv_log_func(db / 20)
+    magnitude_spectrogram = np.sqrt(power_spectrogram)
+    return magnitude_spectrogram
 
 def combine_magnitude_phase(magnitude, phase):
     assert magnitude.shape == phase.shape
@@ -129,8 +141,13 @@ def save_melplot(mel, path):
     plt.imshow(mel, aspect='auto', origin='lower')
     plt.savefig(path)
 
+def save_sigplot(sig, path):
+    plt.figure()
+    plt.plot(sig)
+    plt.savefig(path)
+
 if __name__ == "__main__":
-    path = "dump/wavs/LJ001-0009.wav"
+    path = "dump/wavs/LJ001-0154.wav"
     fs, sig = scipy.io.wavfile.read(path)
     sig = normalize_signal(sig)
 
@@ -148,13 +165,17 @@ if __name__ == "__main__":
     mag, ang = np.abs(st), np.angle(st)
 
     mel_mag = fft2mel(mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
+    mag = amplitude_to_db(mag)
+    mag = db_to_amplitude(mag)
     mag = mel2fft(mel_mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
 
+    ang = np.random.random(mag.shape).astype(np.float32)
     st_comb = combine_magnitude_phase(mag, ang)
     ist = istft(st_comb, n_fft=filter_length, hop_length=hop_length)
     ist[(ist > 1) | (ist < -1)] = 0
     # print(ist.shape)
 
+    print(np.mean(st - mag)**2)
     print(np.sum(ist - sig))
     print(np.mean(ist - sig)**2)
 
@@ -165,7 +186,9 @@ if __name__ == "__main__":
     plt.imshow(amplitude_to_db(st), aspect='auto', origin='lower')
     plt.subplot(413)
     plt.plot(ist)
+    # plt.plot(normalize_signal(ist[500: -500]))
     plt.subplot(414)
     # plt.imshow(np.abs(mel_mag)**2, aspect='auto', origin='lower')
     plt.imshow(amplitude_to_db(mel_mag), aspect='auto', origin='lower')
+    # plt.imshow(amplitude_to_db(stft(normalize_signal(ist[500: -500]), n_fft=filter_length, hop_length=hop_length)), aspect='auto', origin='lower')
     plt.show()
