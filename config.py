@@ -2,7 +2,7 @@ import os
 from typing import List, Union, Dict
 from typeguard import typechecked
 
-from utils import dump_json, load_json, get_random_HEX_name
+from utils import dump_json, load_json, dump_yaml, load_yaml, get_random_HEX_name
 
 def check_argument(name, value, min_val=None, max_val=None):
     if (min_val == None):
@@ -309,7 +309,12 @@ class OptimizerConfig(BaseConfig):
 
 
 def load_config_from_file(path):
-    config_json = load_json(path)
+    config_type = os.path.splitext(path)[1][1: ]
+    assert config_type in ["json", "yaml"], f"given config extension ({config_type}) is invalid"
+    if (config_type == "json"):
+        config_json = load_json(path)
+    elif (config_type == "yaml"):
+        config_json = load_yaml(path)
     text_config = TextConfig(**config_json['text_config'])
     audio_config = AudioConfig(**config_json['audio_config'])
     dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json['dataset_config'])
@@ -333,7 +338,10 @@ def write_file_from_config(path,
                            dataset_config: DatasetConfig, 
                            trainer_config: TrainerConfig, 
                            tacotron2_config: Tacotron2Config, 
-                           optimizer_config: OptimizerConfig):
+                           optimizer_config: OptimizerConfig,
+                           ):
+    config_type = os.path.splitext(path)[1][1: ]
+    assert config_type in ["json", "yaml"], f"given config extension ({config_type}) is invalid"
     config_json = {
         'text_config': get_json_from_config(text_config),
         'audio_config': get_json_from_config(audio_config),
@@ -342,4 +350,7 @@ def write_file_from_config(path,
         'tacotron2_config': get_json_from_config(tacotron2_config),
         'optimizer_config': get_json_from_config(optimizer_config)
     }
-    dump_json(path, config_json)
+    if (config_type == "json"):
+        dump_json(path, config_json)
+    elif (config_type == "yaml"):
+        dump_yaml(path, config_json)

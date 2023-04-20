@@ -2,6 +2,7 @@ import random
 import yt_dlp
 import scipy.io
 import json
+import yaml
 import datetime
 import numpy as np
 
@@ -93,4 +94,13 @@ def dump_json(path, data):
 def load_json(path):
     with open(path, 'r') as f:
         data = json.load(f)
+    return data
+
+def dump_yaml(path, data):
+    with open(path, 'w') as f:
+        yaml.dump(data, f, sort_keys=False, allow_unicode=True)
+
+def load_yaml(path):
+    with open(path, 'r') as f:
+        data = yaml.load(f, Loader=yaml.SafeLoader)
     return data
