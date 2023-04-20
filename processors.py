@@ -174,8 +174,12 @@ class DatasetProcessor:
                 feature_name = os.path.splitext(wav_name)[0] + ".npy"
                 feature_path = os.path.join(feature_dump_dir, feature_name)
                 self.audio_processor.convert2mel(new_wav_path, feature_path)
-                # os.remove(new_wav_path)
                 valid_data.append((text_data[i][0], text_data[i][1], feature_path))
+                if (self.config.remove_wav_dump):
+                    os.remove(new_wav_path)
+
+        if (self.config.remove_wav_dump):
+            shutil.rmtree(wav_dump_dir)
         
         print("trimmed and removed long and short wav files -> before: {bf_cnt} ({bf_len}), after: {af_cnt} ({af_len}), removed: {rm_cnt} ({rm_len})".format(
             bf_cnt=len(text_data),

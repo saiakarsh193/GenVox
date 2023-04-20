@@ -101,16 +101,17 @@ class CheckpointManager:
 
 
 class WandbLogger:
-    def __init__(self, auth_key, project_name, experiment_id, architecture):
-        self.auth_key = auth_key
-        self.project_name = project_name
-        self.experiment_id = experiment_id
-        wandb.login(key=self.auth_key)
+    def __init__(self, trainer):
+        wandb.login(key=trainer.config.wandb_auth_key)
         wandb.init(
-            project=self.project_name,
-            name=f"experiment_{self.experiment_id}",
+            project=trainer.config.project_name,
+            name=f"experiment_{trainer.config.experiment_id}",
             config={
-                "architecture": architecture
+                "architecture": trainer.model_config.model_architecture,
+                "epochs": trainer.config.epochs,
+                "batch_size": trainer.config.batch_size,
+                "seed": trainer.config.seed,
+                "device": trainer.device
             }
         )
 
@@ -149,7 +150,7 @@ class Trainer:
 
         self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
         if (self.config.wandb_logger):
-            self.wandb = WandbLogger(self.config.wandb_auth_key, self.config.project_name, self.config.experiment_id, self.model_config.model_architecture)
+            self.wandb = WandbLogger(self)
 
         self.collate_fn = TextMelCollate()
         self.train_dataset = TextMelDataset(dataset_split_type="train")

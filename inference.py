@@ -57,7 +57,7 @@ class TTSModel:
         return mel_postnet
 
     def mel2audio(self, mel):
-        mel_mag = db_to_amplitude(mel)
+        mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db))
         mag = mel2fft(mel_mag, fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
         ang = np.random.random(mag.shape).astype(np.float32)
         st_comb = combine_magnitude_phase(mag, ang)
@@ -68,7 +68,7 @@ class TTSModel:
 
 
 if __name__ == "__main__":
-    tts = TTSModel('config.json', 'exp/checkpoint_13000.pt', False)
+    tts = TTSModel('config.json', 'exp/checkpoint_32500.pt', False)
     mel = tts('hello world this is a sample sentence')
     save_melplot(mel, 'mel_pred.png')
     fs, wav = tts.mel2audio(mel)

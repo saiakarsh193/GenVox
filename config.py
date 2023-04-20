@@ -143,7 +143,8 @@ class DatasetConfig(BaseConfig):
         utt_index: int = 1,
         transcript_path: str = "",
         wavs_path: str = "",
-        validation_split: Union[int, float] = 0
+        validation_split: Union[int, float] = 0,
+        remove_wav_dump: bool = True
     ):
         self.text_config = text_config
         self.audio_config = audio_config
@@ -154,6 +155,7 @@ class DatasetConfig(BaseConfig):
         self.transcript_path = transcript_path
         self.wavs_path = wavs_path
         self.validation_split = validation_split
+        self.remove_wav_dump = remove_wav_dump
 
         assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
         check_argument("uid_index", self.uid_index, min_val=0)

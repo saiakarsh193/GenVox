@@ -22,11 +22,11 @@ dataset_path = "data/LJSpeech-1.1"
 text_config = TextConfig(
     language="english",
     cleaners=["base_cleaners"],
-    use_g2p=False
+    use_g2p=True
 )
 
 audio_config = AudioConfig(
-    sampling_rate=16000,
+    sampling_rate=22050,
     trim_silence=True,
     trim_dbfs=-50, # anything below -50 is considered silent
     min_wav_duration=2,
@@ -48,22 +48,23 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
+    remove_wav_dump=True,
     validation_split=500
 )
 
-dataset_processor = DatasetProcessor(dataset_config)
-dataset_processor()
+# dataset_processor = DatasetProcessor(dataset_config)
+# dataset_processor()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="ljspeech_fullrun_2",
+    experiment_id="ljspeech_fullrun_3",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,
-    num_loader_workers=4,
+    num_loader_workers=0,
     run_validation=True,
     use_cuda=True,
-    epochs=120,
+    epochs=100,
     iters_for_checkpoint=500
 )
 

@@ -3,6 +3,7 @@ dump/
 exp/
 wandb/
 ttsenv/
+old_exp/
 
 #### below is gitignore template for python (github)
 
