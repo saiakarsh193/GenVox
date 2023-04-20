@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import scipy.io
 
 from audio import save_melplot, save_sigplot, db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal
 from config import load_config_from_file
@@ -67,8 +68,9 @@ class TTSModel:
 
 
 if __name__ == "__main__":
-    tts = TTSModel('config.json', 'exp/checkpoint_2740.pt', True)
+    tts = TTSModel('config.json', 'exp/checkpoint_13000.pt', False)
     mel = tts('hello world this is a sample sentence')
     save_melplot(mel, 'mel_pred.png')
     fs, wav = tts.mel2audio(mel)
     save_sigplot(wav, 'sig_pred.png')
+    scipy.io.wavfile.write('output.wav', fs, wav)
