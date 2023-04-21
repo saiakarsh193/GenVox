@@ -1,6 +1,6 @@
 import os
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, write_file_from_config
+from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig
 from processors import DownloadProcessor, DatasetProcessor
 from trainer import Trainer
 
@@ -71,7 +71,5 @@ trainer_config = TrainerConfig(
 tacotron2_config = Tacotron2Config()
 optimizer_config = OptimizerConfig()
 
-write_file_from_config('config.json', text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
-
-trainer = Trainer(trainer_config, tacotron2_config, optimizer_config, audio_config)
+trainer = Trainer(text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
 trainer.train()

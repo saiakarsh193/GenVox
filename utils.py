@@ -5,6 +5,8 @@ import json
 import yaml
 import datetime
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def download_YT_mp3(link, target, verbose = False):
     # download options for youtube_dl
@@ -110,3 +112,41 @@ def load_yaml(path):
     with open(path, 'r') as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)
     return data
+
+########### plotters
+
+def saveplot_mel(mel, path, title=False):
+    plt.figure()
+    plt.imshow(mel, aspect='auto', origin='lower')
+    if title:
+        plt.title("mel spectrogram")
+    plt.tight_layout()
+    plt.savefig(path)
+
+def saveplot_signal(signal, path, title=False):
+    plt.figure()
+    plt.plot(signal)
+    if title:
+        plt.title("wav signal")
+    plt.tight_layout()
+    plt.savefig(path)
+
+def saveplot_alignment(alignment, path, title=False):
+    plt.figure()
+    plt.imshow(alignment, aspect="auto", origin="lower", interpolation="none")
+    if title:
+        plt.title("alignment")
+    plt.tight_layout()
+    plt.savefig(path)
+
+def saveplot_gate(gate_target, gate_pred, path, title=False):
+    plt.figure()
+    if gate_target != None:
+        plt.plot(gate_target, color='blue', marker='o', alpha=0.5, label='gate target')
+    else:
+        plt.plot(gate_pred, color='red', alpha=0.8, label='gate prediction')
+    if title:
+        plt.title("gate")
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    plt.savefig(path)

@@ -7,9 +7,9 @@ import torch.utils.data
 import wandb
 import time
 
-from config import TrainerConfig, Tacotron2Config, OptimizerConfig, AudioConfig
+from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, write_file_from_config
 from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
-from audio import save_melplot
+from utils import saveplot_mel, saveplot_signal, saveplot_alignment, saveplot_gate
 import tacotron2
 
 class TextMelDataset(torch.utils.data.Dataset):
@@ -70,9 +70,9 @@ class TextMelCollate:
 
 
 class CheckpointManager:
-    def __init__(self, max_best_models):
+    def __init__(self, max_best_models, exp_dir):
         self.max_best_models = max_best_models
-        self.exp_dir = "exp"
+        self.exp_dir = exp_dir
         assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
         self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
         dump_json(self.manager_path, [])
@@ -105,14 +105,10 @@ class WandbLogger:
         wandb.login(key=trainer.config.wandb_auth_key)
         wandb.init(
             project=trainer.config.project_name,
-            name=f"experiment_{trainer.config.experiment_id}",
-            config={
-                "architecture": trainer.model_config.model_architecture,
-                "epochs": trainer.config.epochs,
-                "batch_size": trainer.config.batch_size,
-                "seed": trainer.config.seed,
-                "device": trainer.device
-            }
+            name=f"exp_{trainer.config.experiment_id}",
+            config=self.config_yaml_path,
+            tags=["dev", "ljspeech"],
+            config_exclude_keys=[]
         )
 
     def define_metric(self, value, summary):
@@ -133,12 +129,23 @@ class Trainer:
     Trainer class for the data loading and training stage, along with checkpointing and logging
     """
     @typechecked
-    def __init__(self, config: TrainerConfig, model_config: Tacotron2Config, optimizer_config: OptimizerConfig, audio_config: AudioConfig):
-        exp_dir = "exp"
-        assert not os.path.isdir(exp_dir), f"experiments ({exp_dir}) directory already exists"
-        os.mkdir(exp_dir)
-        self.config = config
-        self.model_config = model_config
+    def __init__(
+        self,
+        text_config: TextConfig,
+        audio_config: AudioConfig,
+        dataset_config: DatasetConfig,
+        trainer_config: TrainerConfig,
+        tacotron2_config: Tacotron2Config,
+        optimizer_config: OptimizerConfig
+    ):
+        self.exp_dir = "exp"
+        assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
+        os.mkdir(self.exp_dir)
+        self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
+        write_file_from_config(self.config_yaml_path, text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
+
+        self.config = trainer_config
+        self.model_config = tacotron2_config
         self.optimizer_config = optimizer_config
         self.audio_config = audio_config
 
@@ -147,10 +154,6 @@ class Trainer:
             self.device = "cuda:0"
         else:
             self.device = "cpu"
-
-        self.checkpoint_manager = CheckpointManager(self.config.max_best_models)
-        if (self.config.wandb_logger):
-            self.wandb = WandbLogger(self)
 
         self.collate_fn = TextMelCollate()
         self.train_dataset = TextMelDataset(dataset_split_type="train")
@@ -161,6 +164,12 @@ class Trainer:
             self.validation_dataset = TextMelDataset(dataset_split_type="validation")
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
+            self.validation_dir = os.path.join(self.exp_dir, "validation_runs")
+            os.mkdir(self.validation_dir)
+
+        self.checkpoint_manager = CheckpointManager(self.config.max_best_models, self.exp_dir)
+        if (self.config.wandb_logger):
+            self.wandb = WandbLogger(self)
 
     def prepare_for_training(self):
         random.seed(self.config.seed)
@@ -199,24 +208,35 @@ class Trainer:
         valid_loss /= len(self.validation_dataloader)
         end_valid = time.time()
         log_print(f"validation end -> validation_loss: {valid_loss: .3f}, time_taken: {sec_to_formatted_time(end_valid - start_valid)}")
+        # saving validation files
+        validation_run_path = os.path.join(self.validation_dir, f"iter_{iteration}")
+        os.mkdir(validation_run_path)
+        rand_ind = random.randrange(0, len(batch)) # selecting random sample in batch
+        text_length = x[1][rand_ind].item() # x: (text, text_len, mel, gate, mel_len), text_len: (batch)
+        mel_length = x[4][rand_ind].item() # x: (text, text_len, mel, gate, mel_len), mel_len: (batch)
+        mel_target = y[0][rand_ind, :, : mel_length].cpu().numpy() # y: (mel, gate), mel: (batch, n_mels, max_mel_length)
+        gate_target = y[1][rand_ind, : mel_length].cpu().numpy() # y: (mel, gate), gate: (batch, max_mel_length)
+        mel_predicted = y_pred[1][rand_ind, :, : mel_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), mel_postnet: (batch, n_mels, max_mel_length)
+        gate_predicted = torch.sigmoid(y_pred[2][rand_ind, : mel_length]).cpu().numpy().reshape(-1) # y_pred: (mel, mel_postnet, gate, align), gate: (batch, max_mel_length, 1), we take sigmoid to get the actual gate value
+        alignments = y_pred[3][rand_ind, : mel_length, : text_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), align: (batch, max_mel_length, max_text_length)
+        validation_run_mel_tar_path = os.path.join(validation_run_path, "mel_tar.png")
+        validation_run_mel_pred_path = os.path.join(validation_run_path, "mel_pred.png")
+        validation_run_gate_path = os.path.join(validation_run_path, "gate.png")
+        validation_run_align_path = os.path.join(validation_run_path, "align.png")
+        saveplot_mel(mel_target, validation_run_mel_tar_path)
+        saveplot_mel(mel_predicted, validation_run_mel_pred_path)
+        saveplot_gate(gate_target, gate_predicted, validation_run_gate_path)
+        saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
         # logging
         if (self.config.wandb_logger):
             self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
-            mel_length = x[4]
-            mel_postnet = y_pred[1]
-            mel_target = y[0]
-            ind = random.randrange(0, mel_postnet.size(0))
-            mel_length = x[4][ind].item()
-
-            mel_target = mel_target[ind, :, : mel_length].cpu().numpy()
-            save_melplot(mel_target, os.path.join("exp", "mel_tar.png"))
-            mel_target = self.wandb.Image(os.path.join("exp", "mel_tar.png"), caption='mel ground truth')
-            self.wandb.log({'mel_target': mel_target}, epoch=iteration)
-
-            mel_predicted = mel_postnet[ind, :, : mel_length].cpu().numpy()
-            save_melplot(mel_predicted, os.path.join("exp", "mel_pred.png"))
-            mel_predicted = self.wandb.Image(os.path.join("exp", "mel_pred.png"), caption='mel predicted')
-            self.wandb.log({'mel_predicted': mel_predicted}, epoch=iteration)
+            mel_target_img = self.wandb.Image(validation_run_mel_tar_path, caption='mel target')
+            mel_predicted_img = self.wandb.Image(validation_run_mel_pred_path, caption='mel predicted')
+            self.wandb.log({'mel_plots': [mel_target_img, mel_predicted_img]}, epoch=iteration)
+            gate_img = self.wandb.Image(validation_run_gate_path, caption='gate')
+            self.wandb.log({'gate_plot': gate_img}, epoch=iteration)
+            align_img = self.wandb.Image(validation_run_align_path, caption='alignment')
+            self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
         self.model.train()
 
     def train(self):

@@ -4,10 +4,12 @@ import torch
 import matplotlib.pyplot as plt
 import scipy.io
 
-from audio import save_melplot, save_sigplot, db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal
+from audio import db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal
 from config import load_config_from_file
 from processors import TextProcessor
+from utils import saveplot_mel, saveplot_signal, saveplot_gate, saveplot_alignment
 import tacotron2
+
 
 class TTSModel:
     """
@@ -51,13 +53,19 @@ class TTSModel:
             tokens = [self.token_map[tk] for tk in tokens]
             tokens = torch.IntTensor(tokens).unsqueeze(0).to(self.device)
             y_pred = self.model.inference(tokens)
-            mel, mel_postnet, *_ = y_pred
+            mel, mel_postnet, gate, alignments = y_pred
             mel_postnet = mel_postnet.squeeze(0)
+            gate = gate.squeeze(0)
+            alignments = alignments.squeeze(0)
             mel_postnet = mel_postnet.cpu().numpy()
+            gate_pred = torch.sigmoid(gate).cpu().numpy().reshape(-1)
+            alignments = alignments.cpu().numpy().T
+        saveplot_gate(None, gate_pred, 'inf_gate.png', title=True)
+        saveplot_alignment(alignments, 'inf_align.png', title=True)
         return mel_postnet
 
     def mel2audio(self, mel):
-        mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db))
+        mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db)
         mag = mel2fft(mel_mag, fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
         ang = np.random.random(mag.shape).astype(np.float32)
         st_comb = combine_magnitude_phase(mag, ang)
@@ -68,9 +76,9 @@ class TTSModel:
 
 
 if __name__ == "__main__":
-    tts = TTSModel('config.json', 'exp/checkpoint_32500.pt', False)
+    tts = TTSModel('config.json', 'exp/checkpoint_9500.pt', False)
     mel = tts('hello world this is a sample sentence')
-    save_melplot(mel, 'mel_pred.png')
+    saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)
-    save_sigplot(wav, 'sig_pred.png')
-    scipy.io.wavfile.write('output.wav', fs, wav)
+    saveplot_signal(wav, 'inf_sig.png')
+    scipy.io.wavfile.write('inf_out.wav', fs, wav)

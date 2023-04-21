@@ -160,7 +160,7 @@ class DatasetConfig(BaseConfig):
         assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
         check_argument("uid_index", self.uid_index, min_val=0)
         check_argument("utt_index", self.utt_index, min_val=0)
-        assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
+        # assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
         if type(self.validation_split) == int: # count of validation samples
             check_argument("validation_split", self.validation_split, min_val=0)
         elif type(self.validation_split) ==  float: # fraction of validation samples
