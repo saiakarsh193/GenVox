@@ -272,7 +272,7 @@ class Trainer:
                 log_print(f"({epoch + 1} :: {ind + 1} / {len(self.train_dataloader)}) -> iteration: {iteration}, loss: {loss_value: .3f}, time_taken: {end_iter - start_iter: .2f} s")
                 iteration += 1
 
-                if (iteration == 1 or iteration % self.config.iters_for_checkpoint == 0):
+                if (iteration % self.config.iters_for_checkpoint == 0):
                     # checkpoint saving
                     self.checkpoint_manager.save_model(iteration, self.model, loss_value)
                     # validation
