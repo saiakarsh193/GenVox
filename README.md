@@ -19,28 +19,14 @@ python3 run.py
 ```
 
 ## Development
-Started on (26-03-23)  
 Read [devlog](dev_log.md) for more details.  
-
-### Phase 1 (1 week)
-- [x] Getting Dataset (2 days)
-  - [x] Download
-  - [x] Create using YT_Transcript
-  - [ ] Create using Aeneas/WhisperX
-- [x] Preparing Dataset (2 days)
-  - [x] Format of text and path
-  - [x] Format to wav and fs
-  - [x] Remove long/short
-- [x] Preprocessing (3 days)
-  - [x] Tokens/Vocab generation
-  - [x] Features generation
-
-### Phase 2
-- [x] Torch Model
-- [x] Trainer
-- [ ] Distributed
+Inspired by [NVIDIA](https://github.com/NVIDIA/tacotron2), [Coqui-AI](https://github.com/coqui-ai/TTS), [ESPNET](https://github.com/espnet/espnet).
 
 ### Explore
+
+- [ ] Create using Aeneas/WhisperX
+- [ ] Distributed
+
 - [ ] argparse
 - [x] logging
 - [ ] pip standards (with docstrings)
