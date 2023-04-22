@@ -106,9 +106,14 @@ class WandbLogger:
         wandb.init(
             project=trainer.config.project_name,
             name=f"exp_{trainer.config.experiment_id}",
-            config=self.config_yaml_path,
+            config={
+                "architecture": trainer.model_config.model_architecture,
+                "epochs": trainer.config.epochs,
+                "batch_size": trainer.config.batch_size,
+                "seed": trainer.config.seed,
+                "device": trainer.device
+            },
             tags=["dev", "ljspeech"],
-            config_exclude_keys=[]
         )
 
     def define_metric(self, value, summary):
@@ -212,12 +217,12 @@ class Trainer:
         validation_run_path = os.path.join(self.validation_dir, f"iter_{iteration}")
         os.mkdir(validation_run_path)
         rand_ind = random.randrange(0, len(batch)) # selecting random sample in batch
-        text_length = x[1][rand_ind].item() # x: (text, text_len, mel, gate, mel_len), text_len: (batch)
-        mel_length = x[4][rand_ind].item() # x: (text, text_len, mel, gate, mel_len), mel_len: (batch)
+        text_length = x[1][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), text_len: (batch)
+        mel_length = x[4][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), mel_len: (batch)
         mel_target = y[0][rand_ind, :, : mel_length].cpu().numpy() # y: (mel, gate), mel: (batch, n_mels, max_mel_length)
-        gate_target = y[1][rand_ind, : mel_length].cpu().numpy() # y: (mel, gate), gate: (batch, max_mel_length)
+        gate_target = y[1][rand_ind].cpu().numpy() # y: (mel, gate), gate: (batch, max_mel_length)
         mel_predicted = y_pred[1][rand_ind, :, : mel_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), mel_postnet: (batch, n_mels, max_mel_length)
-        gate_predicted = torch.sigmoid(y_pred[2][rand_ind, : mel_length]).cpu().numpy().reshape(-1) # y_pred: (mel, mel_postnet, gate, align), gate: (batch, max_mel_length, 1), we take sigmoid to get the actual gate value
+        gate_predicted = torch.sigmoid(y_pred[2][rand_ind]).cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), gate: (batch, max_mel_length), we take sigmoid to get the actual gate value
         alignments = y_pred[3][rand_ind, : mel_length, : text_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), align: (batch, max_mel_length, max_text_length)
         validation_run_mel_tar_path = os.path.join(validation_run_path, "mel_tar.png")
         validation_run_mel_pred_path = os.path.join(validation_run_path, "mel_pred.png")
@@ -225,7 +230,7 @@ class Trainer:
         validation_run_align_path = os.path.join(validation_run_path, "align.png")
         saveplot_mel(mel_target, validation_run_mel_tar_path)
         saveplot_mel(mel_predicted, validation_run_mel_pred_path)
-        saveplot_gate(gate_target, gate_predicted, validation_run_gate_path)
+        saveplot_gate(gate_target, gate_predicted, validation_run_gate_path, plot_both=True)
         saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
         # logging
         if (self.config.wandb_logger):
@@ -267,7 +272,7 @@ class Trainer:
                 log_print(f"({epoch + 1} :: {ind + 1} / {len(self.train_dataloader)}) -> iteration: {iteration}, loss: {loss_value: .3f}, time_taken: {end_iter - start_iter: .2f} s")
                 iteration += 1
 
-                if (iteration % self.config.iters_for_checkpoint == 0):
+                if (iteration == 1 or iteration % self.config.iters_for_checkpoint == 0):
                     # checkpoint saving
                     self.checkpoint_manager.save_model(iteration, self.model, loss_value)
                     # validation

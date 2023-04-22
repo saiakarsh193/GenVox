@@ -139,14 +139,13 @@ def saveplot_alignment(alignment, path, title=False):
     plt.tight_layout()
     plt.savefig(path)
 
-def saveplot_gate(gate_target, gate_pred, path, title=False):
+def saveplot_gate(gate_target, gate_pred, path, title=False, plot_both=False):
     plt.figure()
-    if gate_target != None:
-        plt.plot(gate_target, color='blue', marker='o', alpha=0.5, label='gate target')
-    else:
-        plt.plot(gate_pred, color='red', alpha=0.8, label='gate prediction')
+    if plot_both and type(gate_target) == np.ndarray:
+        plt.plot(gate_target, color='blue', alpha=0.5, label='gate target')
+    plt.plot(gate_pred, color='red', alpha=0.8, label='gate prediction')
     if title:
         plt.title("gate")
-    plt.legend(loc='upper right')
+    plt.legend(loc='upper left')
     plt.tight_layout()
     plt.savefig(path)

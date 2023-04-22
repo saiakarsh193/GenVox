@@ -57,7 +57,7 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="ljspeech_fullrun_3",
+    experiment_id="ljspeech_fullrun_4",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,
