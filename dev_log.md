@@ -260,7 +260,7 @@
   - Added wandb Image plotting along with ground truth and prediction plotting.
 - Added checkpoint resuming for training.
 - Changed model saving format to
-  ```json
+  ```python3
   {
     'model_state_dict': model.parameters(),
     'iteration': iteration

@@ -268,18 +268,12 @@ class Trainer:
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
                 # token_padded, token_lengths, mel_padded, gate_padded, mel_lengths = batch
-                # check for manual reset of learning rate in optimizer param_groups
-                for param_group in self.optimizer.param_groups:
-                    # param_group['lr'] = self.optimizer_config.learning_rate
-                    print(param_group)
-                    print(param_group['lr'])
                 self.optimizer.zero_grad() # same as self.model.zero_grad()
                 x, y = self.model.parse_batch(batch)
                 y_pred = self.model(x)
                 loss = self.criterion(y_pred, y)
                 loss_value = loss.item()
                 loss.backward()
-                # check for torch.nn.utils.clip_grad_norm_()
                 grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.optimizer_config.grad_clip_thresh)
                 self.optimizer.step()
                 end_iter = time.time() # end time of iteration
@@ -293,9 +287,7 @@ class Trainer:
                     self.validation(iteration)
                 # logging
                 if (self.config.wandb_logger):
-                    self.wandb.log({'loss': loss_value}, epoch=iteration, commit=True)
-                if (iteration == 3):
-                    break
+                    self.wandb.log({'loss': loss_value, 'grad_norm': grad_norm}, epoch=iteration, commit=True)
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
