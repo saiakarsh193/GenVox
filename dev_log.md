@@ -21,6 +21,7 @@
 - [13-04-23](#13-04-23)
 - [18-04-23](#18-04-23)
 - [19-04-23](#19-04-23)
+- [23-04-23](#23-04-23)
 
 
 ### 26-03-23
@@ -251,3 +252,35 @@
 - Added `inference.py` that contains the `TTSModel()` class for handling the inference.
 - Added time formatting in `utils.py` and log printing.
 - Difference between numpy saving formats `.npy` and `.npz` and where to use them ([src](https://stackoverflow.com/questions/54238670/what-is-the-advantage-of-saving-npz-files-instead-of-npy-in-python-regard)).
+
+
+### 23-04-23
+**{Akarsh}** (cumulative)
+- Added validation functionality inside the `Trainer()` class to handle `validation_dataloader`, logging and saving plots in `exp/validation_runs` and wandb.
+  - Added wandb Image plotting along with ground truth and prediction plotting.
+- Added checkpoint resuming for training.
+- Changed model saving format to
+  ```json
+  {
+    'model_state_dict': model.parameters(),
+    'iteration': iteration
+  }
+  ```
+  so that during checkpoint resuming for training, we have access to the iteration value for correct saving and logging.
+- Added time formatting and center printing using functions in `utils.py` `current_formatted_time(), log_print(), center_print()`.
+  - Epoch start, end and duration.
+  - Iteration start, end and duration.
+  - Validation start, end and duration.
+  - Estimated time to finish training.
+- Added plotters in `utils.py` for plotting mel spectrogram (`saveplot_mel()`), alignments (`saveplot_alignment()`), gates (`saveplot_gate()` with double purpose), and the raw wav signal (`saveplot_signal()`).
+- Added `config.yaml` support. Automatically save and load based on extension [json, yaml].
+  - Added autosaving params to `exp/config.yaml` which is handled by the `Trainer()` class.
+  - Added `load_yaml()` and `dump_yaml()` in `utils.py`.
+- Added `db_to_amplitude()` in `audio.py` for converting decibel scale mel to its proper magnitude, along with testing code.
+- Added `mel2audio()` support for `TTSModel()` in `inference.py` along with saving of mel, gate, alignment and signal plots.
+- Added option `remove_wav_dump` in `DatasetConfig` to remove the `dump/wavs` directory once the features have been calculated and saved in the `dump/feats` directory.
+- Added extra values for config dict in `wandb.init()` for project details.
+- Added gradient clipping for preventing gradient explosion.
+  - Other fixes for gradient issues [src](https://datascience.stackexchange.com/questions/58731/what-can-be-the-cause-of-a-sudden-explosion-in-the-loss-when-training-a-cnn-dee).
+- `torch.backends.cudnn.enabled=True` is better to speed up conv and RNN layers [src](https://discuss.pytorch.org/t/when-should-we-set-torch-backends-cudnn-enabled-to-false-especially-for-lstm/106571).
+- `torch.backends.cudnn.benchmark=True` allows cudnn autotuner to optimize the algorithm for the hardware. But this only helps us if the input size is same always. But since our input size changes every iteration we keep it as `False` to prevent it from decreasing the performance [src](https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936).
