@@ -42,7 +42,7 @@ class TTSModel:
         self.model = tacotron2.Tacotron2(self.tacotron2_config, self.audio_config, self.use_cuda)
         self.model.to(self.device)
         # loading model params
-        model_dict = torch.load(self.model_path, map_location=self.device)
+        model_dict = torch.load(self.model_path, map_location=self.device)['model_state_dict']
         self.model.load_state_dict(model_dict)
         self.model.eval()
     

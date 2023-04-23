@@ -186,7 +186,9 @@ class TrainerConfig(BaseConfig):
         max_best_models: int = 5,
         iters_for_checkpoint: int = 1,
         wandb_logger: bool = True,
-        wandb_auth_key: str = ""
+        wandb_auth_key: str = "",
+        resume_from_checkpoint: bool = False,
+        checkpoint_path: str = ""
     ):
         self.project_name = project_name
         self.experiment_id = experiment_id
@@ -201,6 +203,8 @@ class TrainerConfig(BaseConfig):
         self.iters_for_checkpoint = iters_for_checkpoint
         self.wandb_logger = wandb_logger
         self.wandb_auth_key = wandb_auth_key
+        self.resume_from_checkpoint = resume_from_checkpoint
+        self.checkpoint_path = checkpoint_path
 
         assert self.project_name, "project_name not provided"
         if self.experiment_id == "":
@@ -211,6 +215,8 @@ class TrainerConfig(BaseConfig):
         check_argument("iters_for_checkpoint", self.iters_for_checkpoint, min_val=1)
         if (self.wandb_logger):
             assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
+        if (self.resume_from_checkpoint):
+            assert self.checkpoint_path, "checkpoint_path not provided (warm_start has been enabled) to start training"
 
 
 class Tacotron2Config(BaseConfig):
@@ -301,13 +307,16 @@ class OptimizerConfig(BaseConfig):
     def __init__(
         self,
         learning_rate: float = 1e-3,
-        weight_decay: float = 1e-6
+        weight_decay: float = 1e-6,
+        grad_clip_thresh: float = 1.0
     ):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.grad_clip_thresh = grad_clip_thresh
 
         check_argument("learning_rate", self.learning_rate, min_val=1e-5)
         check_argument("weight_decay", self.weight_decay, min_val=0)
+        check_argument("grad_clip_thresh", self.grad_clip_thresh, min_val=0)
 
 
 def load_config_from_file(path):
