@@ -284,3 +284,8 @@
   - Other fixes for gradient issues [src](https://datascience.stackexchange.com/questions/58731/what-can-be-the-cause-of-a-sudden-explosion-in-the-loss-when-training-a-cnn-dee).
 - `torch.backends.cudnn.enabled=True` is better to speed up conv and RNN layers [src](https://discuss.pytorch.org/t/when-should-we-set-torch-backends-cudnn-enabled-to-false-especially-for-lstm/106571).
 - `torch.backends.cudnn.benchmark=True` allows cudnn autotuner to optimize the algorithm for the hardware. But this only helps us if the input size is same always. But since our input size changes every iteration we keep it as `False` to prevent it from decreasing the performance [src](https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936).
+
+
+### 25-04-23
+**{Akarsh}**
+- Added scale and power option in `amplitude_to_db()` in `audio.py` to handle special feature extraction (`power=False, scale=1`) which we will be using from now on (even though it defies normal db definition we use that because it gives better results). Also updated `db_to_amplitude()` to handle this.
