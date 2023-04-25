@@ -99,7 +99,7 @@ class AudioProcessor:
             signal = normalize_signal(signal)
         spectrogram = stft(signal, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
         mel_spectrogram = fft2mel(np.abs(spectrogram), fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)
-        mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db)
+        mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db, power=False, scale=1)
         np.save(output_path, mel_db)
 
 class DatasetProcessor:

@@ -20,16 +20,19 @@ def normalize_signal(y):
     norm_fac = max(abs(np.min(y)), abs(np.max(y)))
     return (y / norm_fac).astype(np.float32)
 
-def amplitude_to_db(spectrogram, amin = 1e-5, ref = 1, log_func = "np.log10"):
+def amplitude_to_db(spectrogram, amin = 1e-5, ref = 1, log_func = "np.log10", power = True, scale = 20):
     if (log_func == "np.log"):
         log_func = np.log
     elif (log_func == "np.log10"):
         log_func = np.log10
     magnitude_spectrogram = np.abs(spectrogram)
-    power_spectrogram = magnitude_spectrogram**2
-    db = 20 * log_func(np.maximum(amin, power_spectrogram))
-    db -= 20 * log_func(np.maximum(amin, ref))
-    return db
+    if power:
+        power_spectrogram = magnitude_spectrogram**2
+        db = log_func(np.maximum(amin, power_spectrogram))
+    else:
+        db = log_func(np.maximum(amin, magnitude_spectrogram))
+    db -= log_func(np.maximum(amin, ref))
+    return db * scale
 
 def db_to_amplitude(db, amin = 1e-5, ref = 1, log_func = "np.log10"):
     if (log_func == "np.log"):
