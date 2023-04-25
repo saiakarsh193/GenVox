@@ -193,11 +193,13 @@ class Trainer:
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
         self.start_iteration = 0
+        self.epoch_start = 0
         # checkpoint loading for resuming the training
         if (self.config.resume_from_checkpoint):
             checkpoint_data = torch.load(self.config.checkpoint_path, map_location=self.device)
             self.model.load_state_dict(checkpoint_data['model_state_dict'])
             self.start_iteration = checkpoint_data['iteration']
+            self.epoch_start = self.start_iteration // len(self.train_dataloader)
         self.criterion = tacotron2.Tacotron2Loss()
         self.model.train()
         print(self.model)
@@ -262,7 +264,7 @@ class Trainer:
         log_print(f"epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device}")
         iteration = self.start_iteration
         avg_time_epoch = 0
-        for epoch in range(self.config.epochs):
+        for epoch in range(self.epoch_start, self.config.epochs):
             start_epoch = time.time() # start time of epoch
             log_print(f"epoch start: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
