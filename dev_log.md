@@ -112,7 +112,7 @@
 - Added `DownloadConfig` and `DownloadProcessor`.
 - Added extraction support and changed pipeline -> `i2at, i2aw` contain all values before processing and `i2t, i2w` contain only the values that are valid.
 - Added wav dump creation with length filtering and sampling rate modification (and bitrate) in `dump/wavs/` directory.
-- **NOTE:** Need to add `trimAudio` for the wavs before checking the length before filtering.
+- *NOTE*: Need to add `trimAudio` for the wavs before checking the length before filtering.
 - `i2w` format -> `<utt_id> <wav_path> <wav_shape>`.
 - You can now download `wav` and `vtt` files from Youtube (`yt_dlp`) and use the alignment to segment the audio file into `wavs/` directory and also choose a `speaker_id` for `utt_id`. Then we can prepare `transcript.txt` using standard delimiter `|` and finally we have a dataset.
 - Added `secToFormattedTime` in `utils` for printing time from seconds to a standard format.
@@ -143,7 +143,7 @@
 **{Akarsh}**
 - Changed the pipeline.
   - `DatasetProcessor` takes in `AudioConfig` and `TextConfig` and handles preprocessing using `TextProcessor` and `AudioProcessor` inside it.
-- **NOTE:** Need to add code for handling multi channel wav audio files (convert to single channel before checking for silence).
+- *NOTE*: Need to add code for handling multi channel wav audio files (convert to single channel before checking for silence).
 - Added simple text tokenization and updated them with calculated index.
 - We also need to <SOS/EOS>, <UNK> tokens too along with some standard tokenizers and cleaners.
 - Use `random.sample()` as it samples without replacement. `random.choices()` samples with replacement.
@@ -289,3 +289,10 @@
 ### 25-04-23
 **{Akarsh}**
 - Added scale and power option in `amplitude_to_db()` in `audio.py` to handle special feature extraction (`power=False, scale=1`) which we will be using from now on (even though it defies normal db definition we use that because it gives better results). Also updated `db_to_amplitude()` to handle this.
+- Added epoch start offset for when resuming training.
+
+
+### 26-04-23
+**{Akarsh}**
+- *NOTE*: ALIGNMENTS!!. Changing the mel db scale does the trick. The idea is that the original scale was quite high and was hard to learn. Now decreasing the scale to get almost 0-1 range (giving it pseudo normalization), makes it ideal for the network to learn (check `exp_run_7`). Even changed `ref_level_db=1`.
+- Added `griffin_lim()` in `audio.py` for signal reconstruction.

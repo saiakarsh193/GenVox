@@ -38,7 +38,7 @@ audio_config = AudioConfig(
     mel_fmin=0.0,
     mel_fmax=8000.0,
     log_func="np.log",
-    ref_level_db=20
+    ref_level_db=1
 )
 
 dataset_config = DatasetConfig(
@@ -57,7 +57,7 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_6",
+    experiment_id="run_8",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,

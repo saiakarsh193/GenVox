@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import scipy.io
 
-from audio import db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal
+from audio import db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim
 from config import load_config_from_file
 from processors import TextProcessor
 from utils import saveplot_mel, saveplot_signal, saveplot_gate, saveplot_alignment
@@ -65,9 +65,9 @@ class TTSModel:
         return mel_postnet
 
     def mel2audio(self, mel):
-        mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db)
+        mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db, power=False, scale=1)
         mag = mel2fft(mel_mag, fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
-        ang = np.random.random(mag.shape).astype(np.float32)
+        ang = griffin_lim(mag, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)
         st_comb = combine_magnitude_phase(mag, ang)
         ist = istft(st_comb, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)
         ist[(ist > 1) | (ist < -1)] = 0
@@ -76,8 +76,8 @@ class TTSModel:
 
 
 if __name__ == "__main__":
-    tts = TTSModel('config.json', 'exp/checkpoint_9500.pt', False)
-    mel = tts('hello world this is a sample sentence')
+    tts = TTSModel('exp/config.yaml', 'exp/checkpoint_25000.pt', False)
+    mel = tts('with the active cooperation of the responsible agencies and with the understanding of the people of the United States in their demands upon their President')
     saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)
     saveplot_signal(wav, 'inf_sig.png')

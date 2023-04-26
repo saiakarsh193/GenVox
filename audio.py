@@ -143,6 +143,23 @@ def mel2fft(mel_matrix, fs, n_fft, n_mels, fmin, fmax):
     inverse_basis = np.linalg.pinv(mel_basis)
     return np.matmul(inverse_basis, mel_matrix)
 
+def griffin_lim(magnitude_spectrogram, n_fft, hop_length, momentum=0.99, n_iter=32):
+    """
+    magnitude spectrogram (1 + n_fft / 2, n_frames) -> angles spectrogram (1 + n_fft / 2, n_frames)
+    """
+    angles = np.ones(magnitude_spectrogram.shape, dtype=np.complex64)
+    eps = np.finfo(np.complex64).tiny
+    previous_angles = np.zeros(angles.shape)
+    angles *= magnitude_spectrogram
+    for _ in range(n_iter):
+        inverse = istft(angles, n_fft, hop_length)
+        rebuilt = stft(inverse, n_fft, hop_length)
+        angles = rebuilt - (momentum / (1 + momentum)) * previous_angles
+        angles /= np.abs(angles) + eps
+        angles *= magnitude_spectrogram
+        previous_angles = rebuilt
+    return np.angle(angles)
+
 
 if __name__ == "__main__":
     path = "data/LJSpeech_test/wavs/LJ001-0013.wav"
@@ -167,7 +184,8 @@ if __name__ == "__main__":
     mel_mag = db_to_amplitude(mel_db, power=False, scale=1)
     mag = mel2fft(mel_mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
 
-    ang = np.random.random(mag.shape).astype(np.float32)
+    ang = griffin_lim(mag, n_fft=filter_length, hop_length=hop_length)
+    # ang = np.random.random(mag.shape).astype(np.float32)
     st_comb = combine_magnitude_phase(mag, ang)
     ist = istft(st_comb, n_fft=filter_length, hop_length=hop_length)
     ist[(ist > 1) | (ist < -1)] = 0
@@ -183,8 +201,8 @@ if __name__ == "__main__":
     plt.subplot(412)
     plt.imshow(amplitude_to_db(st), aspect='auto', origin='lower')
     plt.subplot(413)
-    plt.plot(ist)
-    # plt.plot(normalize_signal(ist[500: -500]))
+    # plt.plot(ist)
+    plt.plot(normalize_signal(ist[500: -500]))
     plt.subplot(414)
     # plt.imshow(np.abs(mel_mag)**2, aspect='auto', origin='lower')
     plt.imshow(mel_db, aspect='auto', origin='lower')
