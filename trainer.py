@@ -234,7 +234,8 @@ class Trainer:
         log_print(f"validation end -> validation_loss: {valid_loss: .3f}, time_taken: {sec_to_formatted_time(end_valid - start_valid)}")
         # saving validation files
         validation_run_path = os.path.join(self.validation_dir, f"iter_{iteration}")
-        os.mkdir(validation_run_path)
+        if not os.path.isdir(validation_run_path):
+            os.mkdir(validation_run_path)
         rand_ind = random.randrange(0, len(batch)) # selecting random sample in batch
         text_length = x[1][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), text_len: (batch)
         mel_length = x[4][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), mel_len: (batch)
@@ -262,6 +263,7 @@ class Trainer:
             align_img = self.wandb.Image(validation_run_align_path, caption='alignment')
             self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
         self.model.train()
+        return valid_loss
 
     def train(self):
         self.prepare_for_training()
@@ -270,6 +272,8 @@ class Trainer:
         center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
         start_train = time.time() # start time of training
         log_print(f"epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device}")
+        if (self.config.resume_from_checkpoint):
+            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration}")
         iteration = self.start_iteration
         avg_time_epoch = 0
         for epoch in range(self.epoch_start, self.config.epochs):
@@ -291,20 +295,18 @@ class Trainer:
                 iteration += 1
 
                 if (iteration % self.config.iters_for_checkpoint == 0):
-                    # checkpoint saving
-                    self.checkpoint_manager.save_model(iteration, self.model, loss_value)
                     # validation
-                    self.validation(iteration)
+                    validation_loss = self.validation(iteration)
+                    # checkpoint saving
+                    self.checkpoint_manager.save_model(iteration, self.model, validation_loss)
                 # logging
                 if (self.config.wandb_logger):
                     self.wandb.log({'loss': loss_value, 'grad_norm': grad_norm}, epoch=iteration, commit=True)
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
-            avg_time_epoch = (avg_time_epoch * epoch + epoch_time) / (epoch + 1)  # update the average epoch time
-            log_print(f"epoch end -> time_taken: {sec_to_formatted_time(end_epoch - start_epoch)}")
-            # calculate ETA
-            remaining_epochs = self.config.epochs - (epoch + 1)
-            remaining_time = remaining_epochs * avg_time_epoch
+            avg_time_epoch = (avg_time_epoch * (epoch - self.epoch_start) + epoch_time) / ((epoch - self.epoch_start) + 1)  # update the average epoch time (removed epoch start offset to get correct counts)
+            log_print(f"epoch end -> time_taken: {sec_to_formatted_time(epoch_time)}")
+            remaining_time = (self.config.epochs - (epoch + 1)) * avg_time_epoch # calculate ETA: epochs left * avg time per epoch
             log_print(f"estimated time remaining: {sec_to_formatted_time(remaining_time)} -> training ending at {current_formatted_time(remaining_time)}")
             print()
         if (self.config.wandb_logger):
