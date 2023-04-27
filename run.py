@@ -64,8 +64,11 @@ trainer_config = TrainerConfig(
     num_loader_workers=0,
     run_validation=True,
     use_cuda=True,
-    epochs=100,
-    iters_for_checkpoint=500
+    epochs=200,
+    iters_for_checkpoint=1000,
+    resume_from_checkpoint=True,
+    checkpoint_path='exp/checkpoint_37500.pt',
+    epoch_start=101
 )
 
 tacotron2_config = Tacotron2Config()

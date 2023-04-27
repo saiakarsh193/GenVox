@@ -4,6 +4,7 @@ exp/
 wandb/
 ttsenv/
 old_exp/
+inf_*
 
 #### below is gitignore template for python (github)
 

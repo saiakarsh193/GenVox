@@ -188,7 +188,8 @@ class TrainerConfig(BaseConfig):
         wandb_logger: bool = True,
         wandb_auth_key: str = "",
         resume_from_checkpoint: bool = False,
-        checkpoint_path: str = ""
+        checkpoint_path: str = "",
+        epoch_start: int = 1,
     ):
         self.project_name = project_name
         self.experiment_id = experiment_id
@@ -205,6 +206,7 @@ class TrainerConfig(BaseConfig):
         self.wandb_auth_key = wandb_auth_key
         self.resume_from_checkpoint = resume_from_checkpoint
         self.checkpoint_path = checkpoint_path
+        self.epoch_start = epoch_start # 1-indexed epoch counter
 
         assert self.project_name, "project_name not provided"
         if self.experiment_id == "":
@@ -217,6 +219,7 @@ class TrainerConfig(BaseConfig):
             assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
         if (self.resume_from_checkpoint):
             assert self.checkpoint_path, "checkpoint_path not provided (warm_start has been enabled) to start training"
+        check_argument("epoch_start", self.epoch_start, min_val=1)
 
 
 class Tacotron2Config(BaseConfig):

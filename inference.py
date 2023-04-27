@@ -76,7 +76,7 @@ class TTSModel:
 
 
 if __name__ == "__main__":
-    tts = TTSModel('exp/config.yaml', 'exp/checkpoint_25000.pt', False)
+    tts = TTSModel('exp/config.yaml', 'exp/checkpoint_33500.pt', False)
     mel = tts('with the active cooperation of the responsible agencies and with the understanding of the people of the United States in their demands upon their President')
     saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)

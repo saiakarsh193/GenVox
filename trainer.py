@@ -75,7 +75,8 @@ class CheckpointManager:
         self.exp_dir = exp_dir
         assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
         self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
-        dump_json(self.manager_path, [])
+        if not os.path.isfile(self.manager_path):
+            dump_json(self.manager_path, [])
 
     def save_model(self, iteration, model, loss_value):
         # lower the loss_value better the model
@@ -147,8 +148,11 @@ class Trainer:
         optimizer_config: OptimizerConfig
     ):
         self.exp_dir = "exp"
-        assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
-        os.mkdir(self.exp_dir)
+        if (trainer_config.resume_from_checkpoint):
+            assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist (resume_from_checkpoint was set True)"
+        else:
+            assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
+            os.mkdir(self.exp_dir)
         self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
         write_file_from_config(self.config_yaml_path, text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
 
@@ -173,7 +177,8 @@ class Trainer:
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
             self.validation_dir = os.path.join(self.exp_dir, "validation_runs")
-            os.mkdir(self.validation_dir)
+            if not os.path.isdir(self.validation_dir):
+                os.mkdir(self.validation_dir)
 
         self.checkpoint_manager = CheckpointManager(self.config.max_best_models, self.exp_dir)
         if (self.config.wandb_logger):
@@ -199,7 +204,10 @@ class Trainer:
             checkpoint_data = torch.load(self.config.checkpoint_path, map_location=self.device)
             self.model.load_state_dict(checkpoint_data['model_state_dict'])
             self.start_iteration = checkpoint_data['iteration']
-            self.epoch_start = self.start_iteration // len(self.train_dataloader)
+            if (self.config.epoch_start == 1):
+                self.epoch_start = self.start_iteration // len(self.train_dataloader)
+            else:
+                self.epoch_start = self.config.epoch_start - 1
         self.criterion = tacotron2.Tacotron2Loss()
         self.model.train()
         print(self.model)
@@ -304,8 +312,3 @@ class Trainer:
         center_print(f"TRAINING END ({current_formatted_time()})", space_factor=0.35)
         end_train = time.time() # end time of training
         print(f"total time of training: {sec_to_formatted_time(end_train - start_train)}")
-
-
-if __name__ == "__main__":
-    twd = TextMelDataset()
-    print(twd[0])
