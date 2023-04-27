@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import scipy.io
 
-from audio import db_to_amplitude, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim
+from audio import db_to_amplitude, get_mel_filter, get_inverse_mel_filter, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim
 from config import load_config_from_file
 from processors import TextProcessor
 from utils import saveplot_mel, saveplot_signal, saveplot_gate, saveplot_alignment
@@ -66,7 +66,10 @@ class TTSModel:
 
     def mel2audio(self, mel):
         mel_mag = db_to_amplitude(mel, log_func=self.audio_config.log_func, ref=self.audio_config.ref_level_db, power=False, scale=1)
-        mag = mel2fft(mel_mag, fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
+        if not hasattr(self, 'mel_basis'):
+            self.mel_basis = get_mel_filter(fs=self.audio_config.sampling_rate, n_fft=self.audio_config.filter_length, n_mels=self.audio_config.n_mels, fmin=self.audio_config.mel_fmin, fmax=self.audio_config.mel_fmax)
+            self.inverse_basis = get_inverse_mel_filter(self.mel_basis)
+        mag = mel2fft(mel_mag, self.inverse_basis)
         ang = griffin_lim(mag, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)
         st_comb = combine_magnitude_phase(mag, ang)
         ist = istft(st_comb, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)

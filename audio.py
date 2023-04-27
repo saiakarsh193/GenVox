@@ -132,16 +132,16 @@ def get_mel_filter(fs, n_fft, n_mels, fmin, fmax):
     weights *= enorm[:, np.newaxis]
     return weights
 
-def fft2mel(stft_matrix, fs, n_fft, n_mels, fmin, fmax):
-    assert stft_matrix.dtype.kind == 'f'
-    mel_basis = get_mel_filter(fs, n_fft, n_mels, fmin, fmax)
-    return np.matmul(mel_basis, stft_matrix)
+def get_inverse_mel_filter(mel_basis):
+    return np.linalg.pinv(mel_basis)
 
-def mel2fft(mel_matrix, fs, n_fft, n_mels, fmin, fmax):
+def fft2mel(stft_matrix, mel_basis):
+    assert stft_matrix.dtype.kind == 'f' # checking data type is real (f: real, c: complex)
+    return np.matmul(mel_basis, stft_matrix) # mel_basis should be output of get_mel_filter
+
+def mel2fft(mel_matrix, inverse_basis):
     assert mel_matrix.dtype.kind == 'f'
-    mel_basis = get_mel_filter(fs, n_fft, n_mels, fmin, fmax)
-    inverse_basis = np.linalg.pinv(mel_basis)
-    return np.matmul(inverse_basis, mel_matrix)
+    return np.matmul(inverse_basis, mel_matrix) # inverse_basis should be output of get_inverse_mel_filter
 
 def griffin_lim(magnitude_spectrogram, n_fft, hop_length, momentum=0.99, n_iter=32):
     """
@@ -179,10 +179,12 @@ if __name__ == "__main__":
     # print(st.shape)
     mag, ang = np.abs(st), np.angle(st)
 
-    mel_mag = fft2mel(mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
+    mel_basis = get_mel_filter(fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
+    inverse_basis = get_inverse_mel_filter(mel_basis)
+    mel_mag = fft2mel(mag, mel_basis)
     mel_db = amplitude_to_db(mel_mag, power=False, scale=1)
     mel_mag = db_to_amplitude(mel_db, power=False, scale=1)
-    mag = mel2fft(mel_mag, fs=fs, n_fft=filter_length, n_mels=n_mels, fmin=fmin, fmax=fmax)
+    mag = mel2fft(mel_mag, inverse_basis)
 
     ang = griffin_lim(mag, n_fft=filter_length, hop_length=hop_length)
     # ang = np.random.random(mag.shape).astype(np.float32)
