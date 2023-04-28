@@ -222,11 +222,12 @@ class TrainerConfig(BaseConfig):
 
 class ModelConfig(BaseConfig):
     """
-    Config for Models (TTS / Vocoder)
+    Config for Models -> TTS / VOC (Vocoder)
     """
 
     MODEL_DETAILS = {
-        "Tacotron2": "TTS"
+        "Tacotron2": "TTS",
+        "MelGAN": "VOC"
     }
 
     def __init__(self):

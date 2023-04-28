@@ -196,38 +196,43 @@ class Trainer:
         if not os.path.isdir(validation_run_path):
             os.mkdir(validation_run_path)
         rand_ind = random.randrange(0, len(batch)) # selecting random sample in batch
-        text_length = x[1][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), text_len: (batch)
-        mel_length = x[4][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), mel_len: (batch)
-        mel_target = y[0][rand_ind, :, : mel_length].cpu().numpy() # y: (mel, gate), mel: (batch, n_mels, max_mel_length)
-        gate_target = y[1][rand_ind].cpu().numpy() # y: (mel, gate), gate: (batch, max_mel_length)
-        mel_predicted = y_pred[1][rand_ind, :, : mel_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), mel_postnet: (batch, n_mels, max_mel_length)
-        gate_predicted = torch.sigmoid(y_pred[2][rand_ind]).cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), gate: (batch, max_mel_length), we take sigmoid to get the actual gate value
-        alignments = y_pred[3][rand_ind, : mel_length, : text_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), align: (batch, max_mel_length, max_text_length)
-        validation_run_mel_tar_path = os.path.join(validation_run_path, "mel_tar.png")
-        validation_run_mel_pred_path = os.path.join(validation_run_path, "mel_pred.png")
-        validation_run_gate_path = os.path.join(validation_run_path, "gate.png")
-        validation_run_align_path = os.path.join(validation_run_path, "align.png")
-        saveplot_mel(mel_target, validation_run_mel_tar_path)
-        saveplot_mel(mel_predicted, validation_run_mel_pred_path)
-        saveplot_gate(gate_target, gate_predicted, validation_run_gate_path, plot_both=True)
-        saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
+        if self.model_config.task == "TTS":
+            text_length = x[1][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), text_len: (batch)
+            mel_length = x[4][rand_ind].item() # x: (text, text_len, max_text_len, mel, mel_len), mel_len: (batch)
+            mel_target = y[0][rand_ind, :, : mel_length].cpu().numpy() # y: (mel, gate), mel: (batch, n_mels, max_mel_length)
+            gate_target = y[1][rand_ind].cpu().numpy() # y: (mel, gate), gate: (batch, max_mel_length)
+            mel_predicted = y_pred[1][rand_ind, :, : mel_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), mel_postnet: (batch, n_mels, max_mel_length)
+            gate_predicted = torch.sigmoid(y_pred[2][rand_ind]).cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), gate: (batch, max_mel_length), we take sigmoid to get the actual gate value
+            alignments = y_pred[3][rand_ind, : mel_length, : text_length].cpu().numpy() # y_pred: (mel, mel_postnet, gate, align), align: (batch, max_mel_length, max_text_length)
+            validation_run_mel_tar_path = os.path.join(validation_run_path, "mel_tar.png")
+            validation_run_mel_pred_path = os.path.join(validation_run_path, "mel_pred.png")
+            validation_run_gate_path = os.path.join(validation_run_path, "gate.png")
+            validation_run_align_path = os.path.join(validation_run_path, "align.png")
+            saveplot_mel(mel_target, validation_run_mel_tar_path)
+            saveplot_mel(mel_predicted, validation_run_mel_pred_path)
+            saveplot_gate(gate_target, gate_predicted, validation_run_gate_path, plot_both=True)
+            saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
         # logging
         if (self.config.wandb_logger):
             self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
-            mel_target_img = self.wandb.Image(validation_run_mel_tar_path, caption='mel target')
-            mel_predicted_img = self.wandb.Image(validation_run_mel_pred_path, caption='mel predicted')
-            self.wandb.log({'mel_plots': [mel_target_img, mel_predicted_img]}, epoch=iteration)
-            gate_img = self.wandb.Image(validation_run_gate_path, caption='gate')
-            self.wandb.log({'gate_plot': gate_img}, epoch=iteration)
-            align_img = self.wandb.Image(validation_run_align_path, caption='alignment')
-            self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
+            if self.model_config.task == "TASK":
+                mel_target_img = self.wandb.Image(validation_run_mel_tar_path, caption='mel target')
+                mel_predicted_img = self.wandb.Image(validation_run_mel_pred_path, caption='mel predicted')
+                self.wandb.log({'mel_plots': [mel_target_img, mel_predicted_img]}, epoch=iteration)
+                gate_img = self.wandb.Image(validation_run_gate_path, caption='gate')
+                self.wandb.log({'gate_plot': gate_img}, epoch=iteration)
+                align_img = self.wandb.Image(validation_run_align_path, caption='alignment')
+                self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
         self.model.train()
         return valid_loss
 
     def train(self):
         self.prepare_for_training()
+        print()
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
+        print(f"Model: {self.model_config.model_name}")
+        print(f"Task: {self.model_config.task}")
         center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
         start_train = time.time() # start time of training
         log_print(f"epochs: {self.config.epochs}, batch_count: {len(self.train_dataloader)}, device: {self.device}")

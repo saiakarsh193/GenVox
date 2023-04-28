@@ -302,3 +302,12 @@
 **{Akarsh}**
 - Added `seaborn` style plotting.
 - Added `reduce_noise()` based on low pass butter filter in `audio.py`.
+- *NOTE*: Created new git branch `dev` for the development of model independant codebase, with support for both TTS and Vocoder.
+- Git Branching
+  - `git remote show origin` for full branch details.
+  - [src](https://www.baeldung.com/git-move-uncommitted-work-to-new-branch)
+  - [src](https://stackoverflow.com/questions/2765421/how-do-i-push-a-new-local-branch-to-a-remote-git-repository-and-track-it-too)
+  - [src](https://stackoverflow.com/questions/171550/find-out-which-remote-branch-a-local-branch-is-tracking)
+  - [src](https://initialcommit.com/blog/git-clone#does-git-clone-get-all-branches)
+  - [src](https://www.freecodecamp.org/news/git-clone-branch-how-to-clone-a-specific-branch/)
+  - If you want to switch to a remote branch that does not exist as local branch in your local working directory, you can simply execute git switch remoteBranch. When Git is unable to find this branch in your local repository, it will assume that you want to checkout the respective remote branch with the same name. It will then create a local branch with the same name. It will also set up a tracking relationship between your remote and local branch so that git pull and git push will work as intended [src](https://refine.dev/blog/git-switch-and-git-checkout).
