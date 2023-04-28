@@ -90,15 +90,16 @@ class Trainer:
         trainer_config: TrainerConfig,
         model_config: ModelConfig,
         optimizer_config: OptimizerConfig,
-        exp_dir: str = "exp",
     ):
-        self.exp_dir = exp_dir
+        self.exp_dir = trainer_config.exp_dir
+        self.dump_dir = trainer_config.dump_dir
         if (trainer_config.resume_from_checkpoint):
             assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist (resume_from_checkpoint was set True)"
         else:
             assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
             os.mkdir(self.exp_dir)
 
+        model_config.load_symbols(self.dump_dir)
         self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
         write_configs(
             self.config_yaml_path,

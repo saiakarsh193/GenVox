@@ -3,8 +3,7 @@ import numpy as np
 import torch
 
 class TextMelDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_split_type=None):
-        dump_dir = "dump"
+    def __init__(self, dataset_split_type: str = None, dump_dir: str = "dump"):
         assert os.path.isdir(dump_dir), f"dump ({dump_dir}) directory does not exist"
         if dataset_split_type == None:
             dataset_path = "data.csv"

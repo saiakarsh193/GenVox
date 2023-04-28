@@ -118,9 +118,9 @@ class DatasetProcessor:
     
     def __call__(self):
         print(self.config)
-        dump_dir = "dump"
-        wav_dump_dir = os.path.join("dump", "wavs")
-        feature_dump_dir = os.path.join("dump", "feats")
+        dump_dir = self.config.dump_dir
+        wav_dump_dir = os.path.join(dump_dir, "wavs")
+        feature_dump_dir = os.path.join(dump_dir, "feats")
         assert not os.path.isdir(dump_dir), f"dump ({dump_dir}) directory already exists"
         os.mkdir(dump_dir)
         os.mkdir(wav_dump_dir)

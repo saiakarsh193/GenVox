@@ -144,7 +144,9 @@ class DatasetConfig(BaseConfig):
         transcript_path: str = "",
         wavs_path: str = "",
         validation_split: Union[int, float] = 0,
+        dump_dir: str = "dump",
     ):
+        self.dump_dir = dump_dir
         self.text_config = text_config
         self.audio_config = audio_config
         self.dataset_type = dataset_type
@@ -188,7 +190,11 @@ class TrainerConfig(BaseConfig):
         resume_from_checkpoint: bool = False,
         checkpoint_path: str = "",
         epoch_start: int = 1,
+        exp_dir: str = "exp",
+        dump_dir: str = "dump",
     ):
+        self.exp_dir = exp_dir
+        self.dump_dir = dump_dir
         self.project_name = project_name
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -295,9 +301,6 @@ class Tacotron2Config(ModelConfig):
 
         if (self.symbols != None):
             assert len(self.symbols) == self.n_symbols, f"symbols count ({len(self.symbols)}) does not match with n_symbols ({self.n_symbols})"
-        else:
-            self.symbols = load_json(os.path.join("dump", "token_list.json"))
-            self.n_symbols = len(self.symbols)
         check_argument("symbols_embedding_dim", self.symbols_embedding_dim, min_val=1)
         check_argument("encoder_kernel_size", self.encoder_kernel_size, min_val=1)
         check_argument("encoder_n_convolutions", self.encoder_n_convolutions, min_val=1)
@@ -315,6 +318,11 @@ class Tacotron2Config(ModelConfig):
         check_argument("postnet_embedding_dim", self.postnet_embedding_dim, min_val=1)
         check_argument("postnet_kernel_size", self.postnet_kernel_size, min_val=1)
         check_argument("postnet_n_convolutions", self.postnet_n_convolutions, min_val=1)
+
+    @typechecked
+    def load_symbols(self, dump_dir: str = "dump"):
+        self.symbols = load_json(os.path.join(dump_dir, "token_list.json"))
+        self.n_symbols = len(self.symbols)
 
 
 class OptimizerConfig(BaseConfig):
