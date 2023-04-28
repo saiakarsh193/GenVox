@@ -160,6 +160,13 @@ def griffin_lim(magnitude_spectrogram, n_fft, hop_length, momentum=0.99, n_iter=
         previous_angles = rebuilt
     return np.angle(angles)
 
+def butter_lowpass_filter(data, cutoff, fs, order):
+    b, a = scipy.signal.butter(order, cutoff, fs=fs, btype='low', analog=False)
+    return scipy.signal.lfilter(b, a, data)
+
+def reduce_noise(signal, fs):
+    return butter_lowpass_filter(signal, cutoff=6000, fs=fs, order=6)
+
 
 if __name__ == "__main__":
     path = "data/LJSpeech_test/wavs/LJ001-0013.wav"

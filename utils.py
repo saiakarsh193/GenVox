@@ -6,6 +6,9 @@ import yaml
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams['figure.figsize'] = [8, 5]
+plt.rcParams.update({'font.size': 18})
+plt.style.use('seaborn')
 
 
 def download_YT_mp3(link, target, verbose = False):

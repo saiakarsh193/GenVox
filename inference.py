@@ -1,10 +1,8 @@
 import os
-import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import scipy.io
 
-from audio import db_to_amplitude, get_mel_filter, get_inverse_mel_filter, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim
+from audio import db_to_amplitude, get_mel_filter, get_inverse_mel_filter, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim, reduce_noise
 from config import load_config_from_file
 from processors import TextProcessor
 from utils import saveplot_mel, saveplot_signal, saveplot_gate, saveplot_alignment
@@ -75,11 +73,12 @@ class TTSModel:
         ist = istft(st_comb, n_fft=self.audio_config.filter_length, hop_length=self.audio_config.hop_length)
         ist[(ist > 1) | (ist < -1)] = 0
         sig = normalize_signal(ist[500: -500])
+        sig = reduce_noise(sig, self.audio_config.sampling_rate)
         return self.audio_config.sampling_rate, sig
 
 
 if __name__ == "__main__":
-    tts = TTSModel('exp/config.yaml', 'exp/checkpoint_33500.pt', False)
+    tts = TTSModel('exp/config.yaml', 'exp/checkpoint_62000.pt', False)
     mel = tts('with the active cooperation of the responsible agencies and with the understanding of the people of the United States in their demands upon their President')
     saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)

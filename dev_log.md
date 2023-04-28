@@ -296,3 +296,9 @@
 **{Akarsh}**
 - *NOTE*: ALIGNMENTS!!. Changing the mel db scale does the trick. The idea is that the original scale was quite high and was hard to learn. Now decreasing the scale to get almost 0-1 range (giving it pseudo normalization), makes it ideal for the network to learn (check `exp_run_7`). Even changed `ref_level_db=1`.
 - Added `griffin_lim()` in `audio.py` for signal reconstruction.
+
+
+### 28-04-23
+**{Akarsh}**
+- Added `seaborn` style plotting.
+- Added `reduce_noise()` based on low pass butter filter in `audio.py`.
