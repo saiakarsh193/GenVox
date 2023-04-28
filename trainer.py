@@ -7,66 +7,10 @@ import torch.utils.data
 import wandb
 import time
 
-from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, write_file_from_config
+from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, ModelConfig, Tacotron2Config, OptimizerConfig, write_configs
 from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
-from utils import saveplot_mel, saveplot_signal, saveplot_alignment, saveplot_gate
-import tacotron2
-
-class TextMelDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_split_type=None):
-        dump_dir = "dump"
-        assert os.path.isdir(dump_dir), f"dump ({dump_dir}) directory does not exist"
-        if dataset_split_type == None:
-            dataset_path = "data.csv"
-        else:
-            assert dataset_split_type in ["train", "validation"], f"invalid dataset_split_type ({dataset_split_type}) given"
-            dataset_path = f"data_{dataset_split_type}.csv"
-        with open(os.path.join(dump_dir, dataset_path)) as f:
-            self.text_wav_raw = f.readlines()
-    
-    def __getitem__(self, index):
-        wav_path, text_tokens = self.text_wav_raw[index].strip().split("|")
-        tokens = torch.IntTensor([int(tk) for tk in text_tokens.split()])
-        feats = torch.FloatTensor(np.load(wav_path))
-        return tokens, feats
-    
-    def __len__(self):
-        return len(self.text_wav_raw)
-    
-
-class TextMelCollate:
-    def __call__(self, batch):
-        """
-        batch: [(text_tokens, mel_feats)] -> (batch_size)
-        """
-        # np.argsort sorts in ascending order
-        token_ind_sorted = np.argsort([x[0].shape[0] for x in batch])[::-1]
-
-        max_token_length = batch[token_ind_sorted[0]][0].shape[0]
-        token_padded = torch.IntTensor(len(batch), max_token_length)
-        token_padded.zero_()
-        token_lengths = torch.IntTensor(len(batch))
-        for ind in range(len(batch)):
-            tokens = batch[token_ind_sorted[ind]][0]
-            token_padded[ind, : tokens.shape[0]] = tokens
-            token_lengths[ind] = tokens.shape[0]
-
-        n_mels = batch[0][1].shape[0] # mel: n_mels x frames
-        max_mel_length = max([x[1].shape[1] for x in batch])
-        mel_padded = torch.FloatTensor(len(batch), n_mels, max_mel_length)
-        mel_padded.zero_()
-        gate_padded = torch.FloatTensor(len(batch), max_mel_length)
-        gate_padded.zero_()
-        mel_lengths = torch.IntTensor(len(batch))
-        for ind in range(len(batch)):
-            mel = batch[token_ind_sorted[ind]][1]
-            mel_padded[ind, :, : mel.shape[1]] = mel
-            # marking which is the last step
-            # for largest -> 000001 (1 in last frame marks that this is the end which is used in decoding inference)
-            gate_padded[ind, mel.shape[1]-1: ] = 1
-            mel_lengths[ind] = mel.shape[1]
-
-        return token_padded, token_lengths, mel_padded, gate_padded, mel_lengths
+from utils import saveplot_mel, saveplot_alignment, saveplot_gate
+import tts
 
 
 class CheckpointManager:
@@ -144,22 +88,32 @@ class Trainer:
         audio_config: AudioConfig,
         dataset_config: DatasetConfig,
         trainer_config: TrainerConfig,
-        tacotron2_config: Tacotron2Config,
-        optimizer_config: OptimizerConfig
+        model_config: ModelConfig,
+        optimizer_config: OptimizerConfig,
+        exp_dir: str = "exp",
     ):
-        self.exp_dir = "exp"
+        self.exp_dir = exp_dir
         if (trainer_config.resume_from_checkpoint):
             assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist (resume_from_checkpoint was set True)"
         else:
             assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
             os.mkdir(self.exp_dir)
-        self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
-        write_file_from_config(self.config_yaml_path, text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
 
-        self.config = trainer_config
-        self.model_config = tacotron2_config
-        self.optimizer_config = optimizer_config
+        self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
+        write_configs(
+            self.config_yaml_path,
+            text_config=text_config,
+            audio_config=audio_config,
+            dataset_config=dataset_config,
+            trainer_config=trainer_config,
+            model_config=model_config,
+            optimizer_config=optimizer_config
+        )
+
         self.audio_config = audio_config
+        self.config = trainer_config
+        self.model_config = model_config
+        self.optimizer_config = optimizer_config
 
         if (self.config.use_cuda):
             assert torch.cuda.is_available(), "torch CUDA is not available"
@@ -167,13 +121,15 @@ class Trainer:
         else:
             self.device = "cpu"
 
-        self.collate_fn = TextMelCollate()
-        self.train_dataset = TextMelDataset(dataset_split_type="train")
+        if (self.model_config.task == "TTS"):
+            self.collate_fn = tts.utils.TextMelCollate()
+            self.train_dataset = tts.utils.TextMelDataset(dataset_split_type="train")
         self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.batch_size, collate_fn=self.collate_fn)
 
         if (self.config.run_validation):
             print("run_validation is set to True")
-            self.validation_dataset = TextMelDataset(dataset_split_type="validation")
+            if (self.model_config.task == "TTS"):
+                self.validation_dataset = tts.utils.TextMelDataset(dataset_split_type="validation")
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
             self.validation_dir = os.path.join(self.exp_dir, "validation_runs")
@@ -190,11 +146,15 @@ class Trainer:
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
+        center_print(f"TRAINING PREP ({current_formatted_time()})", space_factor=0.35)
         print(self.config)
         print(self.model_config)
         print(self.optimizer_config)
         print(self.audio_config)
-        self.model = tacotron2.Tacotron2(self.model_config, self.audio_config, self.config.use_cuda)
+        if self.model_config.task == "TTS":
+            if self.model_config.model_name == "Tacotron2":
+                self.model = tts.tacotron2.Tacotron2(self.model_config, self.audio_config, self.config.use_cuda)
+                self.criterion = tts.tacotron2.Tacotron2Loss()
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
         self.start_iteration = 0
@@ -208,7 +168,6 @@ class Trainer:
                 self.epoch_start = self.start_iteration // len(self.train_dataloader)
             else:
                 self.epoch_start = self.config.epoch_start - 1
-        self.criterion = tacotron2.Tacotron2Loss()
         self.model.train()
         print(self.model)
         if (self.config.wandb_logger):

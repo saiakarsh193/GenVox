@@ -1,5 +1,5 @@
 import os
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Optional
 from typeguard import typechecked
 
 from utils import dump_json, load_json, dump_yaml, load_yaml, get_random_HEX_name
@@ -144,7 +144,6 @@ class DatasetConfig(BaseConfig):
         transcript_path: str = "",
         wavs_path: str = "",
         validation_split: Union[int, float] = 0,
-        remove_wav_dump: bool = True
     ):
         self.text_config = text_config
         self.audio_config = audio_config
@@ -155,7 +154,6 @@ class DatasetConfig(BaseConfig):
         self.transcript_path = transcript_path
         self.wavs_path = wavs_path
         self.validation_split = validation_split
-        self.remove_wav_dump = remove_wav_dump
 
         assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
         check_argument("uid_index", self.uid_index, min_val=0)
@@ -222,7 +220,22 @@ class TrainerConfig(BaseConfig):
         check_argument("epoch_start", self.epoch_start, min_val=1)
 
 
-class Tacotron2Config(BaseConfig):
+class ModelConfig(BaseConfig):
+    """
+    Config for Models (TTS / Vocoder)
+    """
+
+    MODEL_DETAILS = {
+        "Tacotron2": "TTS"
+    }
+
+    def __init__(self):
+        config_name = self.__class__.__name__
+        self.model_name = config_name[: config_name.find("Config")]
+        self.task = self.MODEL_DETAILS[self.model_name]
+
+
+class Tacotron2Config(ModelConfig):
     """
     Config for Tacotron2 TTS architecture
     """
@@ -250,7 +263,8 @@ class Tacotron2Config(BaseConfig):
         postnet_n_convolutions: int = 5,
         mask_padding: bool = True
     ):
-        self.model_architecture = "Tacotron2"
+        # model details
+        super().__init__()
         # input params
         self.symbols = symbols
         self.n_symbols = n_symbols
@@ -322,21 +336,35 @@ class OptimizerConfig(BaseConfig):
         check_argument("grad_clip_thresh", self.grad_clip_thresh, min_val=0)
 
 
-def load_config_from_file(path):
+def load_configs(path: str) -> Dict:
     config_type = os.path.splitext(path)[1][1: ]
     assert config_type in ["json", "yaml"], f"given config extension ({config_type}) is invalid"
     if (config_type == "json"):
         config_json = load_json(path)
     elif (config_type == "yaml"):
         config_json = load_yaml(path)
-    text_config = TextConfig(**config_json['text_config'])
-    audio_config = AudioConfig(**config_json['audio_config'])
-    dataset_config = DatasetConfig(text_config=text_config, audio_config=audio_config, **config_json['dataset_config'])
-    trainer_config = TrainerConfig(**config_json['trainer_config'])
-    del config_json['tacotron2_config']['model_architecture']
-    tacotron2_config = Tacotron2Config(**config_json['tacotron2_config'])
-    optimizer_config = OptimizerConfig(**config_json['optimizer_config'])
-    return text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config
+    configs = {}
+    if 'text_config' in config_json:
+        configs['text_config'] = TextConfig(**config_json['text_config'])
+    if 'audio_config' in config_json:
+        configs['audio_config'] = AudioConfig(**config_json['audio_config'])
+    if 'dataset_config' in config_json:
+        configs['dataset_config'] = DatasetConfig(
+            text_config=(configs['text_config'] if 'text_config' in configs else TextConfig()),
+            audio_config=(configs['audio_config'] if 'audio_config' in configs else AudioConfig()),
+            **config_json['dataset_config'])
+    if 'trainer_config' in config_json:
+        configs['trainer_config'] = TrainerConfig(**config_json['trainer_config'])
+    if 'model_config' in config_json:
+        task, model_name = config_json['model_config']['task'], config_json['model_config']['model_name']
+        del config_json['model_config']['task']
+        del config_json['model_config']['model_name']
+        if task == 'TTS':
+            if model_name == 'Tacotron2':
+                configs['model_config'] = Tacotron2Config(**config_json['model_config'])
+    if 'optimizer_config' in config_json:
+        configs['optimizer_config'] = OptimizerConfig(**config_json['optimizer_config'])
+    return configs
 
 def get_json_from_config(config):
     config_json = {}
@@ -346,24 +374,29 @@ def get_json_from_config(config):
     return config_json
 
 @typechecked
-def write_file_from_config(path, 
-                           text_config: TextConfig, 
-                           audio_config: AudioConfig, 
-                           dataset_config: DatasetConfig, 
-                           trainer_config: TrainerConfig, 
-                           tacotron2_config: Tacotron2Config, 
-                           optimizer_config: OptimizerConfig,
-                           ):
+def write_configs(path: str,
+                           text_config: Optional[TextConfig] = None,
+                           audio_config: Optional[AudioConfig] = None,
+                           dataset_config: Optional[DatasetConfig] = None,
+                           trainer_config: Optional[TrainerConfig] = None,
+                           model_config: Optional[ModelConfig] = None,
+                           optimizer_config: Optional[OptimizerConfig] = None
+                        ) -> None:
     config_type = os.path.splitext(path)[1][1: ]
     assert config_type in ["json", "yaml"], f"given config extension ({config_type}) is invalid"
-    config_json = {
-        'text_config': get_json_from_config(text_config),
-        'audio_config': get_json_from_config(audio_config),
-        'dataset_config': get_json_from_config(dataset_config),
-        'trainer_config': get_json_from_config(trainer_config),
-        'tacotron2_config': get_json_from_config(tacotron2_config),
-        'optimizer_config': get_json_from_config(optimizer_config)
-    }
+    config_json = {}
+    if text_config != None:
+        config_json['text_config'] = get_json_from_config(text_config)
+    if audio_config != None:
+        config_json['audio_config'] = get_json_from_config(audio_config)
+    if dataset_config != None:
+        config_json['dataset_config'] = get_json_from_config(dataset_config)
+    if trainer_config != None:
+        config_json['trainer_config'] = get_json_from_config(trainer_config)
+    if model_config != None:
+        config_json['model_config'] = get_json_from_config(model_config)
+    if optimizer_config != None:
+        config_json['optimizer_config'] = get_json_from_config(optimizer_config)
     if (config_type == "json"):
         dump_json(path, config_json)
     elif (config_type == "yaml"):

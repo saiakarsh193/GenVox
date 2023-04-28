@@ -4,8 +4,8 @@ from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, Train
 from processors import DownloadProcessor, DatasetProcessor
 from trainer import Trainer
 
-dataset_path = "data/LJSpeech-1.1"
-# dataset_path = "data/LJSpeech_test"
+# dataset_path = "data/LJSpeech-1.1"
+dataset_path = "data/LJSpeech_test"
 # dataset_path = "data/youtube_3b1b"
 
 # download_config = DownloadConfig(
@@ -22,7 +22,7 @@ dataset_path = "data/LJSpeech-1.1"
 text_config = TextConfig(
     language="english",
     cleaners=["base_cleaners"],
-    use_g2p=True
+    use_g2p=False
 )
 
 audio_config = AudioConfig(
@@ -48,8 +48,7 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
-    remove_wav_dump=True,
-    validation_split=500
+    validation_split=0.1
 )
 
 # dataset_processor = DatasetProcessor(dataset_config)
@@ -57,21 +56,19 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_8",
-    wandb_logger=True,
+    experiment_id="run_9",
+    wandb_logger=False,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
-    batch_size=32,
+    batch_size=16,
     num_loader_workers=0,
     run_validation=True,
-    use_cuda=True,
-    epochs=200,
-    iters_for_checkpoint=1000,
-    resume_from_checkpoint=True,
-    checkpoint_path='exp/checkpoint_37500.pt',
-    epoch_start=101
+    use_cuda=False,
+    epochs=1,
+    iters_for_checkpoint=100,
 )
 
 tacotron2_config = Tacotron2Config()
+
 optimizer_config = OptimizerConfig()
 
 trainer = Trainer(text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
