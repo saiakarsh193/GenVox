@@ -232,14 +232,20 @@ class ModelConfig(BaseConfig):
     """
 
     MODEL_DETAILS = {
-        "Tacotron2": "TTS",
-        "MelGAN": "VOC"
+        "TTS": ["Tacotron2"],
+        "VOC": ["MelGAN"],
     }
 
     def __init__(self):
         config_name = self.__class__.__name__
         self.model_name = config_name[: config_name.find("Config")]
-        self.task = self.MODEL_DETAILS[self.model_name]
+        if self.model_name in self.MODEL_DETAILS["TTS"]:
+            self.task = "TTS"
+        elif self.model_name in self.MODEL_DETAILS["VOC"]:
+            self.task = "VOC"
+        else:
+            print(f"config {config_name} not implemented!")
+            exit()
 
 
 class Tacotron2Config(ModelConfig):

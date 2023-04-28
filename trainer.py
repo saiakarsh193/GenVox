@@ -55,7 +55,8 @@ class WandbLogger:
             project=trainer.config.project_name,
             name=f"exp_{trainer.config.experiment_id}",
             config={
-                "architecture": trainer.model_config.model_architecture,
+                "architecture": trainer.model_config.model_name,
+                "task": trainer.model_config.task,
                 "epochs": trainer.config.epochs,
                 "batch_size": trainer.config.batch_size,
                 "seed": trainer.config.seed,
@@ -124,13 +125,13 @@ class Trainer:
 
         if (self.model_config.task == "TTS"):
             self.collate_fn = tts.utils.TextMelCollate()
-            self.train_dataset = tts.utils.TextMelDataset(dataset_split_type="train")
+            self.train_dataset = tts.utils.TextMelDataset(dataset_split_type="train", dump_dir=self.dump_dir)
         self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.batch_size, collate_fn=self.collate_fn)
 
         if (self.config.run_validation):
             print("run_validation is set to True")
             if (self.model_config.task == "TTS"):
-                self.validation_dataset = tts.utils.TextMelDataset(dataset_split_type="validation")
+                self.validation_dataset = tts.utils.TextMelDataset(dataset_split_type="validation", dump_dir=self.dump_dir)
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data was not found"
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
             self.validation_dir = os.path.join(self.exp_dir, "validation_runs")
@@ -216,7 +217,7 @@ class Trainer:
         # logging
         if (self.config.wandb_logger):
             self.wandb.log({'validation_loss': valid_loss}, epoch=iteration)
-            if self.model_config.task == "TASK":
+            if self.model_config.task == "TTS":
                 mel_target_img = self.wandb.Image(validation_run_mel_tar_path, caption='mel target')
                 mel_predicted_img = self.wandb.Image(validation_run_mel_pred_path, caption='mel predicted')
                 self.wandb.log({'mel_plots': [mel_target_img, mel_predicted_img]}, epoch=iteration)

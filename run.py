@@ -48,7 +48,8 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
-    validation_split=500
+    validation_split=500,
+    dump_dir="dump"
 )
 
 dataset_processor = DatasetProcessor(dataset_config)
@@ -65,6 +66,8 @@ trainer_config = TrainerConfig(
     use_cuda=True,
     epochs=200,
     iters_for_checkpoint=1000,
+    dump_dir="dump",
+    exp_dir="exp"
 )
 
 tacotron2_config = Tacotron2Config()
