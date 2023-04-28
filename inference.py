@@ -3,10 +3,10 @@ import torch
 import scipy.io
 
 from audio import db_to_amplitude, get_mel_filter, get_inverse_mel_filter, mel2fft, combine_magnitude_phase, istft, normalize_signal, griffin_lim, reduce_noise
-from config import load_config_from_file
+from config import load_configs
 from processors import TextProcessor
 from utils import saveplot_mel, saveplot_signal, saveplot_gate, saveplot_alignment
-import tacotron2
+import tts
 
 
 class TTSModel:
@@ -17,7 +17,7 @@ class TTSModel:
         self.config_path = config_path
         assert os.path.isfile(self.config_path), f"config_path ({self.config_path}) does not exist"
         self.model_path = model_path
-        # assert os.path.isfile(self.model_path), f"model_path ({self.model_path}) does not exist"
+        assert os.path.isfile(self.model_path), f"model_path ({self.model_path}) does not exist"
         self.use_cuda = use_cuda
         if (self.use_cuda):
             assert torch.cuda.is_available(), "torch CUDA is not available"
@@ -26,18 +26,17 @@ class TTSModel:
             self.device = "cpu"
         print(f"running inference on device: {self.device}")
         # loading configs
-        text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config = load_config_from_file(self.config_path)
-        self.text_config = text_config
-        self.audio_config = audio_config
-        self.tacotron2_config = tacotron2_config
-        print(self.text_config)
-        print(self.audio_config)
-        print(self.tacotron2_config)
+        configs = load_configs(self.config_path)
+        self.text_config = configs['text_config']
+        self.audio_config = configs['audio_config']
+        self.model_config = configs['model_config']
         # loading processor
         self.text_processor = TextProcessor(self.text_config)
-        self.token_map = self.tacotron2_config.symbols
+        self.token_map = self.model_config.symbols
         # creating model instance
-        self.model = tacotron2.Tacotron2(self.tacotron2_config, self.audio_config, self.use_cuda)
+        if self.model_config.task == "TTS":
+            if self.model_config.model_name == "Tacotron2":
+                self.model = tts.tacotron2.Tacotron2(self.model_config, self.audio_config, self.use_cuda)
         self.model.to(self.device)
         # loading model params
         model_dict = torch.load(self.model_path, map_location=self.device)['model_state_dict']
