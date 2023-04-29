@@ -247,6 +247,12 @@ class ModelConfig(BaseConfig):
             print(f"config {config_name} not implemented!")
             exit()
 
+    @typechecked
+    def load_symbols(self, dump_dir: str = "dump"):
+        assert self.task == "TTS", f"invalid function for given task ({self.task})"
+        self.symbols = load_json(os.path.join(dump_dir, "token_list.json"))
+        self.n_symbols = len(self.symbols)
+
 
 class Tacotron2Config(ModelConfig):
     """
@@ -325,15 +331,10 @@ class Tacotron2Config(ModelConfig):
         check_argument("postnet_kernel_size", self.postnet_kernel_size, min_val=1)
         check_argument("postnet_n_convolutions", self.postnet_n_convolutions, min_val=1)
 
-    @typechecked
-    def load_symbols(self, dump_dir: str = "dump"):
-        self.symbols = load_json(os.path.join(dump_dir, "token_list.json"))
-        self.n_symbols = len(self.symbols)
-
 
 class OptimizerConfig(BaseConfig):
     """
-    Config for Tacotron2 Adam Optimizer
+    Config for Optimizer
     """
     @typechecked
     def __init__(
