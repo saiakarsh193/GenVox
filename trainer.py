@@ -135,6 +135,7 @@ class Trainer:
             self.collate_fn = tts.utils.TextMelCollate()
             self.train_dataset = tts.utils.TextMelDataset(dataset_split_type="train", dump_dir=self.dump_dir)
         self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.batch_size, collate_fn=self.collate_fn)
+        self.iters_per_epoch = len(self.train_dataloader)
 
         # loading validation data
         if (self.config.run_validation):
@@ -184,7 +185,7 @@ class Trainer:
             self.model.load_state_dict(checkpoint_data['model_state_dict'])
             self.iteration_start = checkpoint_data['iteration']
             if (self.epoch_start == 0):
-                self.epoch_start = self.iteration_start // len(self.train_dataloader)
+                self.epoch_start = self.iteration_start // self.iters_per_epoch
         
         # model ready for training
         self.model.train()
@@ -269,8 +270,8 @@ class Trainer:
         print(f"Model: {self.model_config.model_name}")
         print(f"Task: {self.task}")
         print(f"Epochs: {(self.config.epochs - self.epoch_start)} (start: {self.epoch_start})")
-        print(f"Total iterations: {len(self.train_dataloader) * (self.config.epochs - self.epoch_start)} (start: {self.iteration_start})")
-        print(f"Batch count: {len(self.train_dataloader)}")
+        print(f"Total iterations: {self.iters_per_epoch * (self.config.epochs - self.epoch_start)} (start: {self.iteration_start})")
+        print(f"Batch count: {self.iters_per_epoch}")
         print(f"Device: {self.device}")
         if (self.config.resume_from_checkpoint):
             print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration}")
@@ -299,9 +300,9 @@ class Trainer:
                 
                 end_iter = time.time() # end time of iteration
                 iteration += 1
-                log_print(f"({epoch + 1} :: {ind + 1} / {len(self.train_dataloader)}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
+                log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
 
-                if (iteration % self.config.iters_for_checkpoint == 0):
+                if (iteration % self.config.iters_for_checkpoint == 0 or (self.iters_per_epoch * epoch == iteration)): # every iters_per_checkpoint or last iteration
                     # validation
                     validation_loss = self.validation(iteration)
                     # checkpoint saving
@@ -315,7 +316,8 @@ class Trainer:
             epoch_time = end_epoch - start_epoch
             # update the average epoch time (removed epoch start offset to get correct counts)
             avg_time_epoch = ((avg_time_epoch * (epoch - self.epoch_start)) + epoch_time) / ((epoch - self.epoch_start) + 1)
-            log_print(f"epoch end -> time_taken: {sec_to_formatted_time(epoch_time)}")
+            log_print(f"epoch end (left: {epoch - self.config.epochs}) -> time_taken: {sec_to_formatted_time(epoch_time)}")
+            log_print(f"average time per epoch: {sec_to_formatted_time(avg_time_epoch)}")
             log_print(f"time elapsed: {sec_to_formatted_time(end_epoch - start_train)}")
             # calculate ETA: epochs left * avg time per epoch
             remaining_time = (self.config.epochs - (epoch + 1)) * avg_time_epoch
@@ -323,11 +325,11 @@ class Trainer:
             log_print(f"training ending at {current_formatted_time(sec_add=remaining_time)}")
             print()
 
-        # stop wandb syncing
-        if (self.config.wandb_logger):
-            self.wandb.finish()
-
         # training done
         center_print(f"TRAINING END ({current_formatted_time()})", space_factor=0.35)
         end_train = time.time() # end time of training
         print(f"total time of training: {sec_to_formatted_time(end_train - start_train)}")
+
+        # stop wandb syncing
+        if (self.config.wandb_logger):
+            self.wandb.finish()

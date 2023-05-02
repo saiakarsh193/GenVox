@@ -5,6 +5,8 @@ import json
 import yaml
 import datetime
 import numpy as np
+import time
+from functools import wraps
 import matplotlib.pyplot as plt
 
 def download_YT_mp3(link, target, verbose = False):
@@ -67,6 +69,7 @@ def trim_audio_silence(input_path, output_path, silence_threshold: float = -50.0
     assert left_ind < right_ind, "empty audio signal given for trimming silence"
     trimmed_wav = wav[left_ind: right_ind]
     scipy.io.wavfile.write(output_path, fs, trimmed_wav)
+    return (left_ind, right_ind), (wav.shape[0] / fs, trimmed_wav.shape[0] / fs)
 
 def sec_to_formatted_time(seconds):
     seconds = int(seconds)
@@ -112,7 +115,7 @@ def load_yaml(path):
         data = yaml.load(f, Loader=yaml.SafeLoader)
     return data
 
-########### plotters
+########### plotters ############
 
 def saveplot_mel(mel, path, title=False):
     plt.figure()
@@ -148,3 +151,16 @@ def saveplot_gate(gate_target, gate_pred, path, title=False, plot_both=False):
     plt.legend(loc='upper left')
     plt.tight_layout()
     plt.savefig(path)
+
+############ decorators ############
+
+
+def function_timer(func):
+    @wraps(func)
+    def inner_function(*args, **kwargs):
+        st = time.time()
+        return_value = func(*args, **kwargs)
+        en = time.time()
+        print(f"{func.__name__}() time taken: {en - st}")
+        return return_value
+    return inner_function

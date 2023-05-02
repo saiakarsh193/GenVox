@@ -332,24 +332,46 @@ class Tacotron2Config(ModelConfig):
         check_argument("postnet_n_convolutions", self.postnet_n_convolutions, min_val=1)
 
 
+class MelGANConfig(ModelConfig):
+    """
+    Config for MelGAN Vocoder architecture
+    """
+    @typechecked
+    def __init__(
+        self,
+        train_repeat_discriminator: int = 1
+    ):
+        # model details
+        super().__init__()
+        self.train_repeat_discriminator = train_repeat_discriminator
+
+        check_argument("train_repeat_discriminator", self.train_repeat_discriminator, min_val=1)
+
+
 class OptimizerConfig(BaseConfig):
     """
-    Config for Optimizer
+    Config for Optimizer (Adam)
     """
     @typechecked
     def __init__(
         self,
         learning_rate: float = 1e-3,
         weight_decay: float = 1e-6,
-        grad_clip_thresh: float = 1.0
+        grad_clip_thresh: float = 1.0,
+        beta1: float = 0.9,
+        beta2: float = 0.999
     ):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.grad_clip_thresh = grad_clip_thresh
+        self.beta1 = beta1
+        self.beta2 = beta2
 
         check_argument("learning_rate", self.learning_rate, min_val=1e-5)
         check_argument("weight_decay", self.weight_decay, min_val=0)
         check_argument("grad_clip_thresh", self.grad_clip_thresh, min_val=0)
+        check_argument("beta1", self.beta1, min_val=0, max_val=1)
+        check_argument("beta2", self.beta2, min_val=0, max_val=1)
 
 
 def load_configs(path: str) -> Dict:

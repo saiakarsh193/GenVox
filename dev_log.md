@@ -311,3 +311,12 @@
   - [src](https://initialcommit.com/blog/git-clone#does-git-clone-get-all-branches)
   - [src](https://www.freecodecamp.org/news/git-clone-branch-how-to-clone-a-specific-branch/)
   - If you want to switch to a remote branch that does not exist as local branch in your local working directory, you can simply execute git switch remoteBranch. When Git is unable to find this branch in your local repository, it will assume that you want to checkout the respective remote branch with the same name. It will then create a local branch with the same name. It will also set up a tracking relationship between your remote and local branch so that git pull and git push will work as intended [src](https://refine.dev/blog/git-switch-and-git-checkout).
+
+
+### 02-05-23
+**{Akarsh}**
+- Python Decorators ([src](https://www.freecodecamp.org/news/python-decorators-explained-with-examples/))
+  - My implementation [src](https://gist.github.com/saiakarsh193/7abe28a3120811939ca555a375e1f2ef).
+- Added `tools/` directory to host helper scripts to run independant tasks. The code is directly taken from existing GenVox code. The motivation is to use the existing code for other purposes, hence the need to give seperate access.
+  - `tools/resample.py` to resample audio wav files based on `AudioProcessor()`.
+  - `tools/trim_audio.py` to trim audio based on `utils.trim_audio_silence()`.
