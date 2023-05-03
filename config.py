@@ -176,6 +176,7 @@ class TrainerConfig(BaseConfig):
         self,
         project_name: str = "",
         experiment_id: str = "",
+        notes: Optional[str] = None,
         batch_size: int = 64,
         num_loader_workers: int = 2,
         run_validation: bool = True,
@@ -185,6 +186,7 @@ class TrainerConfig(BaseConfig):
         use_cuda: bool = False,
         max_best_models: int = 5,
         iters_for_checkpoint: int = 1,
+        save_optimizer_dict: bool = False,
         wandb_logger: bool = True,
         wandb_auth_key: str = "",
         resume_from_checkpoint: bool = False,
@@ -197,6 +199,7 @@ class TrainerConfig(BaseConfig):
         self.dump_dir = dump_dir
         self.project_name = project_name
         self.experiment_id = experiment_id
+        self.notes = notes
         self.batch_size = batch_size
         self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
         self.run_validation = run_validation
@@ -206,6 +209,7 @@ class TrainerConfig(BaseConfig):
         self.use_cuda = use_cuda
         self.max_best_models = max_best_models
         self.iters_for_checkpoint = iters_for_checkpoint
+        self.save_optimizer_dict = save_optimizer_dict
         self.wandb_logger = wandb_logger
         self.wandb_auth_key = wandb_auth_key
         self.resume_from_checkpoint = resume_from_checkpoint

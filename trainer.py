@@ -14,15 +14,16 @@ import tts
 
 
 class CheckpointManager:
-    def __init__(self, max_best_models, exp_dir):
-        self.max_best_models = max_best_models
+    def __init__(self, exp_dir, max_best_models, save_optimizer_dict):
         self.exp_dir = exp_dir
+        self.max_best_models = max_best_models
+        self.save_optimizer_dict = save_optimizer_dict
         assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
         self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
         if not os.path.isfile(self.manager_path):
             dump_json(self.manager_path, [])
 
-    def save_model(self, iteration, model, loss_value):
+    def save_model(self, iteration, model, optimizer, loss_value):
         # lower the loss_value better the model
         # [(checkpoint_iteration, loss_value)] (increasing order)
         manager_data = load_json(self.manager_path)
@@ -39,7 +40,8 @@ class CheckpointManager:
             # for saving the torch model
             torch.save({
                 'iteration': iteration,
-                'model_state_dict': model.state_dict()
+                'model_state_dict': model.state_dict(),
+                'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
                 }, checkpoint_path)
         if (len(manager_data) > self.max_best_models):
             model_removed_path = manager_data[-1][0]
@@ -54,6 +56,7 @@ class WandbLogger:
         wandb.init(
             project=trainer.config.project_name,
             name=f"exp_{trainer.config.experiment_id}",
+            notes=trainer.config.notes,
             config={
                 "architecture": trainer.model_config.model_name,
                 "task": trainer.model_config.task,
@@ -149,7 +152,7 @@ class Trainer:
                 os.mkdir(self.validation_dir)
 
         # setting up helper classes
-        self.checkpoint_manager = CheckpointManager(self.config.max_best_models, self.exp_dir)
+        self.checkpoint_manager = CheckpointManager(self.exp_dir, self.config.max_best_models, self.config.save_optimizer_dict)
         if (self.config.wandb_logger):
             self.wandb = WandbLogger(self)
 
@@ -190,6 +193,10 @@ class Trainer:
         # model ready for training
         self.model.train()
         print(self.model)
+
+        # optimizing torch
+        torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
+        # torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
         # setting up wandb metrics for summarization
         if (self.config.wandb_logger):
@@ -260,10 +267,10 @@ class Trainer:
         return valid_loss
 
     def train(self):
-        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
-
         # training preparation
         self.prepare_for_training()
+
+        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
         print()
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")
@@ -306,7 +313,7 @@ class Trainer:
                     # validation
                     validation_loss = self.validation(iteration)
                     # checkpoint saving
-                    self.checkpoint_manager.save_model(iteration, self.model, validation_loss)
+                    self.checkpoint_manager.save_model(iteration, self.model, self.optimizer, validation_loss)
                 
                 # logging to wandb
                 if (self.config.wandb_logger):
