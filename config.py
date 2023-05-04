@@ -14,14 +14,17 @@ def check_argument(name, value, min_val=None, max_val=None):
 
 
 class BaseConfig:
-    def __str__(self, level=0):
-        rstr = ("    " * level) + self.__class__.__name__ + "\n"
-        for key, value in iter(self.__dict__.items()):
+    def __str__(self, level = 0):
+        prefix_main = (("├── " + "    " * (level - 1)) if level > 0 else "")
+        prefix = (("│   " + "    " * (level - 1)) if level > 0 else "")
+        rstr = prefix_main + self.__class__.__name__ + "\n"
+        for ind, (key, value) in enumerate(self.__dict__.items()):
             if (isinstance(value, BaseConfig)):
                 svalue = "\n" + BaseConfig.__str__(value, level=level + 1)
             else:
                 svalue = "(" + str(value) + ")"
-            rstr += ("    " * level) + "└── " + key.ljust(35) + svalue + "\n"
+            prefix_value = ("└── " if ind == len(self.__dict__) - 1 else "├── ")
+            rstr += prefix + prefix_value + key.ljust(35) + svalue + "\n"
         return rstr.rstrip()
     
     def __repr__(self):
