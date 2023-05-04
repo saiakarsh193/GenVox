@@ -118,6 +118,7 @@ def load_yaml(path):
 ########### plotters ############
 
 def saveplot_mel(mel, path, title=False):
+    plt.close()
     plt.figure()
     plt.imshow(mel, aspect='auto', origin='lower')
     if title:
@@ -126,6 +127,7 @@ def saveplot_mel(mel, path, title=False):
     plt.savefig(path)
 
 def saveplot_signal(signal, path, title=False):
+    plt.close()
     plt.figure()
     plt.plot(signal)
     if title:
@@ -134,6 +136,7 @@ def saveplot_signal(signal, path, title=False):
     plt.savefig(path)
 
 def saveplot_alignment(alignment, path, title=False):
+    plt.close()
     plt.figure()
     plt.imshow(alignment, aspect="auto", origin="lower", interpolation="none")
     if title:
@@ -142,6 +145,7 @@ def saveplot_alignment(alignment, path, title=False):
     plt.savefig(path)
 
 def saveplot_gate(gate_target, gate_pred, path, title=False, plot_both=False):
+    plt.close()
     plt.figure()
     if plot_both and type(gate_target) == np.ndarray:
         plt.plot(gate_target, color='blue', alpha=0.5, label='gate target')

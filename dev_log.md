@@ -320,3 +320,11 @@
 - Added `tools/` directory to host helper scripts to run independant tasks. The code is directly taken from existing GenVox code. The motivation is to use the existing code for other purposes, hence the need to give seperate access.
   - `tools/resample.py` to resample audio wav files based on `AudioProcessor()`.
   - `tools/trim_audio.py` to trim audio based on `utils.trim_audio_silence()`.
+
+
+### 05-05-23
+**{Akarsh}**
+- Added `vocoder/utils.py` that houses the `SigMelDataset()` dataset class for audio and mel data.
+  - Added `max_frames` to clip or pad to a specific number of frames (and equally in audio signal length) for faster training and cudnn benckmark accelaration.
+  - *NOTE*: Need to experiment adding noise as given here [src](https://github.com/seungwonpark/melgan/blob/master/datasets/dataloader.py).
+- Made changes in `trainer` to handle vocoder input.

@@ -346,13 +346,16 @@ class MelGANConfig(ModelConfig):
     @typechecked
     def __init__(
         self,
-        train_repeat_discriminator: int = 1
+        train_repeat_discriminator: int = 1,
+        max_frames: int = 200
     ):
         # model details
         super().__init__()
         self.train_repeat_discriminator = train_repeat_discriminator
+        self.max_frames = max_frames
 
         check_argument("train_repeat_discriminator", self.train_repeat_discriminator, min_val=1)
+        check_argument("max_frames", self.max_frames, min_val=100)
 
 
 class OptimizerConfig(BaseConfig):

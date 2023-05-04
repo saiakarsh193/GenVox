@@ -1,6 +1,7 @@
 import os
 import random
 import numpy as np
+from typing import Optional
 from typeguard import typechecked
 import torch
 import torch.utils.data
@@ -11,6 +12,7 @@ from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, ModelC
 from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
 from utils import saveplot_mel, saveplot_alignment, saveplot_gate
 import tts
+import vocoder
 
 
 class CheckpointManager:
@@ -88,20 +90,20 @@ class Trainer:
     @typechecked
     def __init__(
         self,
-        text_config: TextConfig,
-        audio_config: AudioConfig,
-        dataset_config: DatasetConfig,
         trainer_config: TrainerConfig,
         model_config: ModelConfig,
         optimizer_config: OptimizerConfig,
+        audio_config: AudioConfig,
+        text_config: Optional[TextConfig] = None,
+        dataset_config: Optional[DatasetConfig] = None
     ):
         # preparing exp directory (nothing if checkpoint resuming)
-        self.text_config = text_config
-        self.audio_config = audio_config
-        self.dataset_config = dataset_config
         self.config = trainer_config
         self.model_config = model_config
         self.optimizer_config = optimizer_config
+        self.audio_config = audio_config
+        self.text_config = text_config
+        self.dataset_config = dataset_config
 
         self.task = self.model_config.task
         self.exp_dir = self.config.exp_dir
@@ -112,7 +114,7 @@ class Trainer:
             assert not os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory already exists"
             os.mkdir(self.exp_dir)
 
-        # loading symbols from token_list.txt if TTS model and saving the config file in exp directorys
+        # loading symbols from token_list.txt if TTS model and saving the config file in exp directories
         if self.task == "TTS":
             self.model_config.load_symbols(self.dump_dir)
         self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
@@ -137,6 +139,9 @@ class Trainer:
         if (self.task == "TTS"):
             self.collate_fn = tts.utils.TextMelCollate()
             self.train_dataset = tts.utils.TextMelDataset(dataset_split_type="train", dump_dir=self.dump_dir)
+        else:
+            self.collate_fn = None
+            self.train_dataset = vocoder.utils.SigMelDataset(dataset_split_type="train", dump_dir=self.dump_dir, audio_config=self.audio_config, max_frames=self.model_config.max_frames)
         self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.batch_size, collate_fn=self.collate_fn)
         self.iters_per_epoch = len(self.train_dataloader)
 
@@ -145,6 +150,8 @@ class Trainer:
             print("run_validation is set to True")
             if (self.task == "TTS"):
                 self.validation_dataset = tts.utils.TextMelDataset(dataset_split_type="validation", dump_dir=self.dump_dir)
+            else:
+                self.validation_dataset = vocoder.utils.SigMelDataset(dataset_split_type="validation", dump_dir=self.dump_dir, audio_config=self.audio_config, max_frames=self.model_config.max_frames)
             assert len(self.validation_dataset) > 0, "run_validation was set True, but validation data ({val_csv}) is empty".format(val_csv=os.path.join(self.dump_dir, "data_validation.csv"))
             self.validation_dataloader = torch.utils.data.DataLoader(self.validation_dataset, num_workers=self.config.num_loader_workers, shuffle=True, batch_size=self.config.validation_batch_size, collate_fn=self.collate_fn, drop_last=True)
             self.validation_dir = os.path.join(self.exp_dir, "validation_runs")

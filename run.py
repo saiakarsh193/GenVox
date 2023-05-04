@@ -57,7 +57,8 @@ dataset_processor()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_9",
+    experiment_id="run_10",
+    notes="",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,
@@ -65,6 +66,7 @@ trainer_config = TrainerConfig(
     run_validation=True,
     use_cuda=True,
     epochs=200,
+    max_best_models=3,
     iters_for_checkpoint=1000,
     dump_dir="dump",
     exp_dir="exp"
@@ -74,5 +76,13 @@ tacotron2_config = Tacotron2Config()
 
 optimizer_config = OptimizerConfig()
 
-trainer = Trainer(text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
+trainer = Trainer(
+    trainer_config=trainer_config,
+    model_config=tacotron2_config,
+    optimizer_config=optimizer_config,
+    audio_config=audio_config,
+    text_config=text_config,
+    dataset_config=dataset_config
+)
+
 trainer.train()
