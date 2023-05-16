@@ -1,5 +1,6 @@
 import os
 from typing import List, Union, Dict, Optional
+from typing_extensions import Literal
 from typeguard import typechecked
 
 from utils import dump_json, load_json, dump_yaml, load_yaml, get_random_HEX_name
@@ -34,6 +35,27 @@ class BaseConfig:
 class DownloadConfig(BaseConfig):
     """
     Config for DownloadProcessor
+
+    Args:
+        download_link (str): A string containing a direct download link for the audio file.
+                Default is ``""``.
+        is_youtube (bool): A boolean indicating whether the audio is from a YouTube video.
+                Default is ``False``.
+        youtube_link (str): A string containing the YouTube video link.
+                Default is ``""``.
+        speaker_id (str): he ID of the speaker in the audio file.
+                Default is ``""``.
+        create_directory (bool): Whether to create a new directory for the downloaded file.
+                Default is ``False``.
+        directory_path (str): The path of the directory where the downloaded file will be saved.
+                Default is ``""``.
+        verbose (bool): Whether to print messages during the download process.
+                Default is ``True``.
+    Raises:
+        AssertionError: If `youtube_link` or `speaker_id` are not given when `is_youtube` is True,
+            If `download_link` is not given when `is_youtube` is False.
+            If `create_directory` is True and `directory_path` already exists,
+            If `create_directory` is False and `directory_path` does not exist.
     """
     @typechecked
     def __init__(
@@ -70,6 +92,14 @@ class DownloadConfig(BaseConfig):
 class TextConfig(BaseConfig):
     """
     Config for TextProcessor
+
+    Args:
+        language (str): The language of the text. 
+                Default is ``"english"``.
+        cleaners (Union[List[str], None]): A list of cleaner names or None. 
+                Default is ``None``.
+        use_g2p (bool): Whether to use grapheme-to-phoneme (g2p) conversion. 
+                Default is ``False``.
     """
     @typechecked
     def __init__(
@@ -82,10 +112,46 @@ class TextConfig(BaseConfig):
         self.cleaners = cleaners
         self.use_g2p = use_g2p
 
+_LOG_TYPE = Literal[
+    "np.log",
+    "np.log10"
+]
 
 class AudioConfig(BaseConfig):
     """
     Config for AudioProcessor
+
+    Args:
+        Args:
+        sampling_rate (int): The sampling rate of the audio in Hz. (Min: 16000, Max: 44100)
+                Default is ``22050``.
+        trim_silence (bool): Whether to trim silence from the beginning and end of the audio.
+                Default is ``True`.
+        trim_dbfs (float): The threshold in dBFS below which audio is considered silence for trimming. (Min: -100, Max: 0)
+                Default is ``-50.0``.
+        min_wav_duration (float): The minimum duration of audio in seconds. Audio shorter than this duration will be excluded. (Min: 0.1)
+                Default is ``0.5``.
+        max_wav_duration (float): The maximum duration of audio in seconds. Audio longer than this duration will be excluded.
+                Default is ``10``.
+        normalize (bool): Whether to normalize the audio waveform. 
+                Default is ``True``.
+        filter_length (int): The length of the FIR filter for computing the STFT. (Min: 256, Max: 2048)
+                Default is ``512``.
+        hop_length (int): The number of samples between successive STFT columns. (Min: 128)
+                Default is ``256``.
+        n_mels (int): The number of mel bands to generate. (Min value: 12, Max value: 128)
+                Default is ``80``.
+        mel_fmin (float): The minimum frequency of the mel band filter bank. (Min: 0, Max: 8000)
+                Default is ``0.0``.
+        mel_fmax (float): The maximum frequency of the mel band filter bank. (Min: 8000, Max:22050)
+                Default is ``8000.0``.
+        log_func (str): The logarithm function to use for mel spectrogram computation. (Either "np.log10" or "np.log")
+                Default is ``"np.log10"``.
+        ref_level_db (float): The reference level dB for normalizing the audio. (Min: 1)
+                Default is ``1``.
+
+    Raises:
+        ValueError: If any of the arguments fails the specified constraints.
     """
     @typechecked
     def __init__(
@@ -101,7 +167,7 @@ class AudioConfig(BaseConfig):
         n_mels: int = 80,
         mel_fmin: float = 0.0,
         mel_fmax: float = 8000.0,
-        log_func: str = "np.log10",
+        log_func: _LOG_TYPE = "np.log10",
         ref_level_db: float = 1
     ):
         self.sampling_rate = sampling_rate
@@ -127,20 +193,47 @@ class AudioConfig(BaseConfig):
         check_argument("n_mels", self.n_mels, min_val=12, max_val=128)
         check_argument("mel_fmin", self.mel_fmin, min_val=0, max_val=8000)
         check_argument("mel_fmax", self.mel_fmax, min_val=8000, max_val=22050)
-        assert self.log_func in ["np.log", "np.log10"], f"The value \'log_func\' ({self.log_func}) is an invalid function name."
         check_argument("ref_level_db", self.ref_level_db, min_val=1)
 
+
+_DATASET_TYPE = Literal[
+    "text",
+    "json"
+]
 
 class DatasetConfig(BaseConfig):
     """
     Config for DatasetProcessor
+
+    Args:
+        text_config (TextConfig): Configuration settings for text processing.
+        audio_config (AudioConfig): Configuration settings for audio processing.
+        dataset_type (str): The type of the dataset. (Either "text" or "json")
+                Default is ``"text"``. 
+        delimiter (str): The delimiter used to separate fields in the dataset. 
+                Default is ``" "``.
+        uid_index (int): The index of the field containing the unique identifier in the dataset. (Min: 0)
+                Default is ``0``.
+        utt_index (int): The index of the field containing the utterance in the dataset. (Min: 0)
+                Default is ``1``.
+        transcript_path (str): The path to the transcript file for text-based datasets. 
+                Default is ``""``.
+        wavs_path (str): The path to the directory containing the audio files for audio-based datasets. 
+                Default is ``""``.
+        validation_split (Union[int, float]): The number of samples to use for validation. 
+                Default is ``0``.
+        dump_dir (str): The directory to store the prepared dataset. 
+                Default is ``"dump"``.
+        
+    Raises:
+        ValueError: If any of the arguments fails the specified constraints.
     """
     @typechecked
     def __init__(
         self,
         text_config: TextConfig,
         audio_config: AudioConfig,
-        dataset_type: str = "text",
+        dataset_type: _DATASET_TYPE = "text",
         delimiter: str = " ",
         uid_index: int = 0,
         utt_index: int = 1,
@@ -160,7 +253,6 @@ class DatasetConfig(BaseConfig):
         self.wavs_path = wavs_path
         self.validation_split = validation_split
 
-        assert self.dataset_type in ["text", "json"], f"dataset_type ({self.dataset_type}) is invalid"
         check_argument("uid_index", self.uid_index, min_val=0)
         check_argument("utt_index", self.utt_index, min_val=0)
         # assert os.path.isfile(transcript_path), f"transcript_path ({self.transcript_path}) file does not exist"
@@ -173,6 +265,55 @@ class DatasetConfig(BaseConfig):
 class TrainerConfig(BaseConfig):
     """
     Config for Trainer class
+
+    Args:
+        project_name (str): The name of the project
+                Default is ``""``.
+        experiment_id (str): The ID of the experiment.
+                Default is ``""``.
+        notes (Optional[str]): Additional notes or description for the experiment. 
+                Default is ``None``.
+        batch_size (int): The batch size for training. 
+                Default is ``64``.
+        num_loader_workers (int): The number of worker processes for data loading. 
+                Default is ``2``.
+        run_validation (bool): Whether to run validation during training. 
+                Default is ``True``.
+        validation_batch_size (int): The batch size for validation. 
+                Default is ``32``.
+        epochs (int): The number of training epochs. 
+                Default is ``100``.
+        seed (int): The random seed for reproducibility. 
+                Default is ``0``.
+        use_cuda (bool): Whether to use CUDA for training if available. 
+                Default is ``False``.
+        max_best_models (int): The maximum number of best models to save during training. 
+                Default is ``5``.
+        iters_for_checkpoint (int): The number of iterations between saving checkpoints. 
+                Default is ``1``.
+        save_optimizer_dict (bool): Whether to save the optimizer state dictionary in checkpoints. 
+                Default is ``False``.
+        wandb_logger (bool): Whether to use wandb for logging. 
+                Default is ``True``.
+        wandb_auth_key (str): The authentication key for wandb. 
+                Default is an ``""``.
+        resume_from_checkpoint (bool): Whether to resume training from a checkpoint. 
+                Default is ``False``.
+        checkpoint_path (str): The path to the checkpoint file for resuming training. 
+                Default is an ``""``.
+        epoch_start (int): The starting epoch count. 
+                Default is ``1``.
+        exp_dir (str): The directory for storing experiment results.
+                Default is ``"exp"``.
+        dump_dir (str): The directory for storing dumped files.
+                Default is ``"dump"``.
+    Raises:
+        AssertionError: If `project_name` is not provided.
+            If `experiment_id` is not provided, a random ID will be generated.
+            If `epochs`, `max_best_models`, or `iters_for_checkpoint` are less than 1.
+            If `wandb_logger` is True and `wandb_auth_key` is not provided.
+            If `resume_from_checkpoint` is True and `checkpoint_path` is not provided.
+            If `epoch_start` is less than 1.
     """
     @typechecked
     def __init__(
@@ -361,6 +502,21 @@ class MelGANConfig(ModelConfig):
 class OptimizerConfig(BaseConfig):
     """
     Config for Optimizer (Adam)
+
+    Args:
+        learning_rate (float): Learning rate for the optimizer.
+                Default is ``1e-3``.
+        weight_decay (float): The weight decay (L2 penalty) for the optimizer.
+                Default is ``1e-6``.
+        grad_clip_thresh (float): The threshold value for gradient clipping.
+                Default is ``1.0``.
+        beta1 (float): The exponential decay rate for the first moment estimates in Adam optimizer.
+                Default is ``0.9``.
+        beta2 (float): The exponential decay rate for the second moment estimates in Adam optimizer.
+                Default is ``0.999``.
+
+    Raises:
+        AssertionError: If any of the argument values are invalid.
     """
     @typechecked
     def __init__(
