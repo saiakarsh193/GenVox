@@ -10,23 +10,29 @@ import time
 
 from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, ModelConfig, Tacotron2Config, OptimizerConfig, write_configs
 from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
-from utils import saveplot_mel, saveplot_alignment, saveplot_gate
+from utils import saveplot_mel, saveplot_alignment, saveplot_gate, saveplot_signal
 import tts
 import vocoder
 
 
 class CheckpointManager:
-    def __init__(self, exp_dir, max_best_models, save_optimizer_dict):
+    def __init__(self, exp_dir, max_best_models, save_optimizer_dict, task):
         self.exp_dir = exp_dir
         self.max_best_models = max_best_models
         self.save_optimizer_dict = save_optimizer_dict
+        self.task = task
         assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
         self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
         if not os.path.isfile(self.manager_path):
             dump_json(self.manager_path, [])
 
     def save_model(self, iteration, model, optimizer, loss_value):
-        # lower the loss_value better the model
+        # model: tts_model if task == TTS
+        #        (gen_model, disc_model) if task == VOC
+        # optimizer: tts_optim if task == TTS
+        #            (gen_optim, disc_optim) if task == VOC
+        # loss_value: lower the loss_value better the model
+        #
         # [(checkpoint_iteration, loss_value)] (increasing order)
         manager_data = load_json(self.manager_path)
         add_at_index = -1
@@ -40,11 +46,21 @@ class CheckpointManager:
             checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
             manager_data.insert(add_at_index, (checkpoint_path, loss_value))
             # for saving the torch model
-            torch.save({
-                'iteration': iteration,
-                'model_state_dict': model.state_dict(),
-                'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
-                }, checkpoint_path)
+            if self.task == "TTS":
+                model_dict = {
+                    'task': self.task,
+                    'iteration': iteration,
+                    'model_state_dict': model.state_dict(),
+                    'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
+                }
+            else:
+                model_dict = {
+                    'task': self.task,
+                    'iteration': iteration,
+                    'model_state_dict': (model[0].state_dict(), model[1].state_dict()),
+                    'optim_state_dict': (optimizer[0].state_dict(), optimizer[1].state_dict()) if self.save_optimizer_dict else None,
+                }
+            torch.save(model_dict, checkpoint_path)
         if (len(manager_data) > self.max_best_models):
             model_removed_path = manager_data[-1][0]
             manager_data = manager_data[: -1]
@@ -159,9 +175,12 @@ class Trainer:
                 os.mkdir(self.validation_dir)
 
         # setting up helper classes
-        self.checkpoint_manager = CheckpointManager(self.exp_dir, self.config.max_best_models, self.config.save_optimizer_dict)
+        self.checkpoint_manager = CheckpointManager(self.exp_dir, self.config.max_best_models, self.config.save_optimizer_dict, self.task)
         if (self.config.wandb_logger):
             self.wandb = WandbLogger(self)
+
+    def prepare_data(self, x: torch.Tensor):
+        return x.contiguous().to(self.device)
 
     def prepare_for_training(self):
         center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
@@ -183,23 +202,49 @@ class Trainer:
             if self.model_config.model_name == "Tacotron2":
                 self.model = tts.tacotron2.Tacotron2(self.model_config, self.audio_config, self.config.use_cuda)
                 self.criterion = tts.tacotron2.Tacotron2Loss()
-        self.model.to(self.device)
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
+            self.model.to(self.device)
+        else:
+            if self.model_config.model_name == "MelGAN":
+                self.model_generator = vocoder.melgan.Generator(self.audio_config.n_mels)
+                self.model_discriminator = vocoder.melgan.MultiScaleDiscriminator()
+                self.criterion_generator = vocoder.melgan.GeneratorLoss(self.model_config.feat_match)
+                self.criterion_discriminator = vocoder.melgan.DiscriminatorLoss()
+            self.optimizer_generator = torch.optim.Adam(self.model_generator.parameters(), lr=self.optimizer_config.learning_rate, betas=(self.optimizer_config.beta1, self.optimizer_config.beta2))
+            self.optimizer_discriminator = torch.optim.Adam(self.model_discriminator.parameters(), lr=self.optimizer_config.learning_rate, betas=(self.optimizer_config.beta1, self.optimizer_config.beta2))
+            self.model_generator.to(self.device)
+            self.model_discriminator.to(self.device)
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optimizer_config.learning_rate, weight_decay=self.optimizer_config.weight_decay)
         self.epoch_start = self.config.epoch_start - 1
         self.iteration_start = 0
 
         # loading checkpoint state_dict into model to resume training
         if (self.config.resume_from_checkpoint):
             checkpoint_data = torch.load(self.config.checkpoint_path, map_location=self.device)
-            self.model.load_state_dict(checkpoint_data['model_state_dict'])
+            assert self.task == checkpoint_data['task'], f"given task ({self.task}) from {self.model_config.model_name}"
+            if self.task == "TTS":
+                self.model.load_state_dict(checkpoint_data['model_state_dict'])
+                if self.config.save_optimizer_dict:
+                    self.optimizer.load_state_dict(checkpoint_data['optim_state_dict'])
+            else:
+                self.model_generator.load_state_dict(checkpoint_data['model_state_dict'][0])
+                self.model_discriminator.load_state_dict(checkpoint_data['model_state_dict'][1])
+                if self.config.save_optimizer_dict:
+                    self.optimizer_generator.load_state_dict(checkpoint_data['optim_state_dict'][0])
+                    self.optimizer_discriminator.load_state_dict(checkpoint_data['optim_state_dict'][1])
             self.iteration_start = checkpoint_data['iteration']
             if (self.epoch_start == 0):
                 self.epoch_start = self.iteration_start // self.iters_per_epoch
         
         # model ready for training
-        self.model.train()
-        print(self.model)
+        if self.task == "TTS":
+            self.model.train()
+            print(self.model)
+        else:
+            self.model_generator.train()
+            self.model_discriminator.train()
+            print(self.model_generator)
+            print(self.model_discriminator)
 
         # optimizing torch
         torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
@@ -207,7 +252,11 @@ class Trainer:
 
         # setting up wandb metrics for summarization
         if (self.config.wandb_logger):
-            self.wandb.define_metric('loss', summary='min')
+            if self.task == "TTS":
+                self.wandb.define_metric('loss', summary='min')
+            else:
+                self.wandb.define_metric('loss_total', summary='min')
+                self.wandb.define_metric('loss_generator', summary='min')
             if (self.config.run_validation):
                 self.wandb.define_metric('validation_loss', summary='min')
 
@@ -219,14 +268,28 @@ class Trainer:
         valid_loss = 0
 
         # validation loop
-        self.model.eval()
-        with torch.no_grad():
-            for batch in self.validation_dataloader:
-                x, y = self.model.parse_batch(batch)
-                y_pred = self.model(x)
-                loss = self.criterion(y_pred, y)
-                valid_loss += loss.item()
-        self.model.train()
+        if self.task == "TTS":
+            self.model.eval()
+            with torch.no_grad():
+                for batch in self.validation_dataloader:
+                    x, y = self.model.parse_batch(batch)
+                    y_pred = self.model(x)
+                    loss = self.criterion(y_pred, y)
+                    valid_loss += loss.item()
+            self.model.train()
+        else:
+            self.model_generator.eval()
+            self.model_discriminator.eval()
+            with torch.no_grad():
+                for batch in self.validation_dataloader:
+                    audio, mel = self.prepare_data(batch[0]), self.prepare_data(batch[1])
+                    fake_audio = self.model_generator(mel)
+                    disc_fake = self.model_discriminator(fake_audio)
+                    disc_real = self.model_discriminator(audio)
+                    loss_generator = self.criterion_generator(disc_fake, disc_real)
+                    valid_loss += loss_generator.item()
+            self.model_generator.train()
+            self.model_discriminator.train()
 
         # logging validation data
         valid_loss /= len(self.validation_dataloader)
@@ -257,6 +320,13 @@ class Trainer:
                 saveplot_mel(mel_predicted, validation_run_mel_pred_path)
                 saveplot_gate(gate_target, gate_predicted, validation_run_gate_path, plot_both=True)
                 saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
+        else:
+            sig_target = audio[rand_ind].squeeze(0).cpu().numpy() # audio: (batch, 1, signal)
+            sig_predicted = fake_audio[rand_ind].squeeze(0).cpu().numpy() # fake_audio: (batch, 1, signal)
+            validation_run_sig_tar_path = os.path.join(validation_run_path, "sig_tar.png")
+            validation_run_sig_pred_path = os.path.join(validation_run_path, "sig_pred.png")
+            saveplot_signal(sig_target, validation_run_sig_tar_path)
+            saveplot_signal(sig_predicted, validation_run_sig_pred_path)
 
         # logging validation data to wandb
         if (self.config.wandb_logger):
@@ -270,6 +340,10 @@ class Trainer:
                     self.wandb.log({'gate_plot': gate_img}, epoch=iteration)
                     align_img = self.wandb.Image(validation_run_align_path, caption='alignment')
                     self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
+            else:
+                sig_target_img = self.wandb.Image(validation_run_sig_tar_path, caption='real audio')
+                sig_predicted_img = self.wandb.Image(validation_run_sig_pred_path, caption='generated audio')
+                self.wandb.log({'signal_plots': [sig_target_img, sig_predicted_img]}, epoch=iteration)
 
         return valid_loss
 
@@ -302,29 +376,65 @@ class Trainer:
 
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
-                
-                self.optimizer.zero_grad() # same as self.model.zero_grad()
-                x, y = self.model.parse_batch(batch)
-                y_pred = self.model(x)
-                loss = self.criterion(y_pred, y)
-                loss_value = loss.item()
-                loss.backward()
-                grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.optimizer_config.grad_clip_thresh)
-                self.optimizer.step()
-                
+
+                if self.task == "TTS":
+                    self.optimizer.zero_grad() # same as self.model.zero_grad()
+                    x, y = self.model.parse_batch(batch)
+                    y_pred = self.model(x)
+                    loss = self.criterion(y_pred, y)
+                    loss_value = loss.item()
+                    loss.backward()
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.optimizer_config.grad_clip_thresh)
+                    self.optimizer.step()
+                else:
+                    audio, mel = self.prepare_data(batch[0]), self.prepare_data(batch[1])
+                    # generator training
+                    self.optimizer_generator.zero_grad()
+                    fake_audio = self.model_generator(mel)
+                    with torch.no_grad():
+                        disc_fake = self.model_discriminator(fake_audio)
+                        disc_real = self.model_discriminator(audio)
+                    loss_generator = self.criterion_generator(disc_fake, disc_real)
+                    loss_generator_value = loss_generator.item()
+                    loss_generator.backward()
+                    self.optimizer_generator.step()
+
+                    # discriminator training
+                    with torch.no_grad():
+                        fake_audio = self.model_generator(mel)
+                    loss_discriminator_value = 0.0
+                    for _ in range(self.model_config.train_repeat_discriminator):
+                        self.optimizer_discriminator.zero_grad()
+                        disc_fake = self.model_discriminator(fake_audio)
+                        disc_real = self.model_discriminator(audio)
+                        loss_discriminator = self.criterion_discriminator(disc_fake, disc_real)
+                        loss_discriminator_value += loss_discriminator.item()
+                        loss_discriminator.backward()
+                        self.optimizer_discriminator.step()
+
                 end_iter = time.time() # end time of iteration
                 iteration += 1
-                log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
+
+                if self.task == "TTS":
+                    log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
+                else:
+                    log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss_g: {loss_generator_value: .3f}, loss_d: {loss_discriminator_value: .3f}, time_taken: {end_iter - start_iter: .2f} s")
 
                 if (iteration % self.config.iters_for_checkpoint == 0 or (self.iters_per_epoch * epoch == iteration)): # every iters_per_checkpoint or last iteration
                     # validation
                     validation_loss = self.validation(iteration)
                     # checkpoint saving
-                    self.checkpoint_manager.save_model(iteration, self.model, self.optimizer, validation_loss)
+                    if self.task == "TTS":
+                        self.checkpoint_manager.save_model(iteration, self.model, self.optimizer, validation_loss)
+                    else:
+                        self.checkpoint_manager.save_model(iteration, (self.model_generator, self.model_discriminator), (self.optimizer_generator, self.optimizer_discriminator), validation_loss)
                 
                 # logging to wandb
                 if (self.config.wandb_logger):
-                    self.wandb.log({'loss': loss_value, 'grad_norm': grad_norm}, epoch=iteration, commit=True)
+                    if self.task == "TTS":
+                        self.wandb.log({'loss': loss_value, 'grad_norm': grad_norm}, epoch=iteration, commit=True)
+                    else:
+                        self.wandb.log({'loss_total': loss_generator_value + loss_discriminator_value, 'loss_generator': loss_generator_value, 'loss_discriminator': loss_discriminator_value}, epoch=iteration, commit=True)
             
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch

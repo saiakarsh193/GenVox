@@ -1,6 +1,6 @@
 import os
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig
+from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
 from processors import DownloadProcessor, DatasetProcessor
 from trainer import Trainer
 
@@ -52,13 +52,13 @@ dataset_config = DatasetConfig(
     dump_dir="dump"
 )
 
-dataset_processor = DatasetProcessor(dataset_config)
-dataset_processor()
+# dataset_processor = DatasetProcessor(dataset_config)
+# dataset_processor()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_10",
-    notes="",
+    experiment_id="run_11",
+    notes="First Vocoder run",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=32,
@@ -72,17 +72,19 @@ trainer_config = TrainerConfig(
     exp_dir="exp"
 )
 
-tacotron2_config = Tacotron2Config()
+melgan_config = MelGANConfig()
+# tacotron2_config = Tacotron2Config()
 
 optimizer_config = OptimizerConfig()
 
 trainer = Trainer(
     trainer_config=trainer_config,
-    model_config=tacotron2_config,
+    model_config=melgan_config,
+    # model_config=tacotron2_config,
     optimizer_config=optimizer_config,
     audio_config=audio_config,
-    text_config=text_config,
-    dataset_config=dataset_config
+    # text_config=text_config,
+    # dataset_config=dataset_config
 )
 
 trainer.train()

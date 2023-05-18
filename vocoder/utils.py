@@ -17,7 +17,7 @@ class SigMelDataset(torch.utils.data.Dataset):
             dataset_path = f"data_{dataset_split_type}.csv"
         self.audio_config = audio_config
         self.max_frames = max_frames
-        self.max_signal_length = (self.max_frames - 1) * self.audio_config.hop_length + self.audio_config.filter_length
+        self.max_signal_length = self.max_frames * self.audio_config.hop_length
         with open(os.path.join(dump_dir, dataset_path)) as f:
             self.raw_data = f.readlines()
 

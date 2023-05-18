@@ -41,9 +41,9 @@ class DownloadConfig(BaseConfig):
                 Default is ``""``.
         is_youtube (bool): A boolean indicating whether the audio is from a YouTube video.
                 Default is ``False``.
-        youtube_link (str): A string containing the YouTube video link.
+        youtube_link (str): A string containing the YouTube video link (is_youtube should be True).
                 Default is ``""``.
-        speaker_id (str): he ID of the speaker in the audio file.
+        speaker_id (str): The ID of the speaker in the audio file.
                 Default is ``""``.
         create_directory (bool): Whether to create a new directory for the downloaded file.
                 Default is ``False``.
@@ -488,15 +488,18 @@ class MelGANConfig(ModelConfig):
     def __init__(
         self,
         train_repeat_discriminator: int = 1,
-        max_frames: int = 200
+        max_frames: int = 200,
+        feat_match: float = 10.0
     ):
         # model details
         super().__init__()
         self.train_repeat_discriminator = train_repeat_discriminator
         self.max_frames = max_frames
+        self.feat_match = feat_match
 
         check_argument("train_repeat_discriminator", self.train_repeat_discriminator, min_val=1)
         check_argument("max_frames", self.max_frames, min_val=100)
+        check_argument("feat_match", self.feat_match, min_val=1)
 
 
 class OptimizerConfig(BaseConfig):
@@ -578,14 +581,15 @@ def get_json_from_config(config):
     return config_json
 
 @typechecked
-def write_configs(path: str,
-                           text_config: Optional[TextConfig] = None,
-                           audio_config: Optional[AudioConfig] = None,
-                           dataset_config: Optional[DatasetConfig] = None,
-                           trainer_config: Optional[TrainerConfig] = None,
-                           model_config: Optional[ModelConfig] = None,
-                           optimizer_config: Optional[OptimizerConfig] = None
-                        ) -> None:
+def write_configs(
+        path: str,
+        text_config: Optional[TextConfig] = None,
+        audio_config: Optional[AudioConfig] = None,
+        dataset_config: Optional[DatasetConfig] = None,
+        trainer_config: Optional[TrainerConfig] = None,
+        model_config: Optional[ModelConfig] = None,
+        optimizer_config: Optional[OptimizerConfig] = None
+    ) -> None:
     config_type = os.path.splitext(path)[1][1: ]
     assert config_type in ["json", "yaml"], f"given config extension ({config_type}) is invalid"
     config_json = {}
