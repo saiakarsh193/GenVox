@@ -31,8 +31,11 @@ class SigMelDataset(torch.utils.data.Dataset):
         if (feats.shape[1] < self.max_frames): # pad zeros to get the max_frames and max_signal_length shape
             frames_pad = self.max_frames - feats.shape[1]
             feats = np.pad(feats, ((0, 0), (0, frames_pad)), mode="constant", constant_values=0.0)
-            signal_pad = self.max_signal_length - signal.shape[0]
-            signal = np.pad(signal, ((0, signal_pad)), mode="constant", constant_values=0.0)
+            if signal.shape[0] < self.max_signal_length:
+                signal_pad = self.max_signal_length - signal.shape[0]
+                signal = np.pad(signal, ((0, signal_pad)), mode="constant", constant_values=0.0)
+            else:
+                signal = signal[: self.max_signal_length]
         else: # randomly sample a part of the mel and signal to get the max_frames and max_signal_length shape
             random_start_frame = random.randint(0, feats.shape[1] - self.max_frames)
             feats = feats[:, random_start_frame: random_start_frame + self.max_frames]

@@ -391,17 +391,15 @@ class Trainer:
                     # generator training
                     self.optimizer_generator.zero_grad()
                     fake_audio = self.model_generator(mel)
-                    with torch.no_grad():
-                        disc_fake = self.model_discriminator(fake_audio)
-                        disc_real = self.model_discriminator(audio)
+                    disc_fake = self.model_discriminator(fake_audio)
+                    disc_real = self.model_discriminator(audio)
                     loss_generator = self.criterion_generator(disc_fake, disc_real)
                     loss_generator_value = loss_generator.item()
                     loss_generator.backward()
                     self.optimizer_generator.step()
 
                     # discriminator training
-                    with torch.no_grad():
-                        fake_audio = self.model_generator(mel)
+                    fake_audio = self.model_generator(mel)
                     loss_discriminator_value = 0.0
                     for _ in range(self.model_config.train_repeat_discriminator):
                         self.optimizer_discriminator.zero_grad()
@@ -420,7 +418,7 @@ class Trainer:
                 else:
                     log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss_g: {loss_generator_value: .3f}, loss_d: {loss_discriminator_value: .3f}, time_taken: {end_iter - start_iter: .2f} s")
 
-                if (iteration % self.config.iters_for_checkpoint == 0 or (self.iters_per_epoch * epoch == iteration)): # every iters_per_checkpoint or last iteration
+                if (iteration % self.config.iters_for_checkpoint == 0 or (iteration == self.iters_per_epoch * epoch)): # every iters_per_checkpoint or last iteration
                     # validation
                     validation_loss = self.validation(iteration)
                     # checkpoint saving
@@ -440,7 +438,7 @@ class Trainer:
             epoch_time = end_epoch - start_epoch
             # update the average epoch time (removed epoch start offset to get correct counts)
             avg_time_epoch = ((avg_time_epoch * (epoch - self.epoch_start)) + epoch_time) / ((epoch - self.epoch_start) + 1)
-            log_print(f"epoch end (left: {epoch - self.config.epochs}) -> time_taken: {sec_to_formatted_time(epoch_time)}")
+            log_print(f"epoch end (left: {self.config.epochs - epoch}) -> time_taken: {sec_to_formatted_time(epoch_time)}")
             log_print(f"average time per epoch: {sec_to_formatted_time(avg_time_epoch)}")
             log_print(f"time elapsed: {sec_to_formatted_time(end_epoch - start_train)}")
             # calculate ETA: epochs left * avg time per epoch

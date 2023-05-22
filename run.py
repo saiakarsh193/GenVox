@@ -57,11 +57,12 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_11",
+    experiment_id="run_10",
     notes="First Vocoder run",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
-    batch_size=32,
+    batch_size=16,
+    validation_batch_size=16,
     num_loader_workers=0,
     run_validation=True,
     use_cuda=True,
