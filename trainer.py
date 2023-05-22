@@ -35,32 +35,32 @@ class CheckpointManager:
         #
         # [(checkpoint_iteration, loss_value)] (increasing order)
         manager_data = load_json(self.manager_path)
-        add_at_index = -1
+        add_at_index = len(manager_data)
         for index in range(len(manager_data)):
             if (loss_value < manager_data[index][1]):
                 add_at_index = index
                 break
-        if (len(manager_data) == 0):
-            add_at_index = 0
-        if (add_at_index >= 0):
-            checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
-            manager_data.insert(add_at_index, (checkpoint_path, loss_value))
-            # for saving the torch model
-            if self.task == "TTS":
-                model_dict = {
-                    'task': self.task,
-                    'iteration': iteration,
-                    'model_state_dict': model.state_dict(),
-                    'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
-                }
-            else:
-                model_dict = {
-                    'task': self.task,
-                    'iteration': iteration,
-                    'model_state_dict': (model[0].state_dict(), model[1].state_dict()),
-                    'optim_state_dict': (optimizer[0].state_dict(), optimizer[1].state_dict()) if self.save_optimizer_dict else None,
-                }
-            torch.save(model_dict, checkpoint_path)
+        if (add_at_index == self.max_best_models): # if add_at_index is at last position and manager already has max models, then igno
+            return
+        checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
+        manager_data.insert(add_at_index, (checkpoint_path, loss_value))
+        # for saving the torch model
+        if self.task == "TTS":
+            model_dict = {
+                'task': self.task,
+                'iteration': iteration,
+                'model_state_dict': model.state_dict(),
+                'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
+            }
+        else:
+            model_dict = {
+                'task': self.task,
+                'iteration': iteration,
+                'model_state_dict': (model[0].state_dict(), model[1].state_dict()),
+                'optim_state_dict': (optimizer[0].state_dict(), optimizer[1].state_dict()) if self.save_optimizer_dict else None,
+            }
+        torch.save(model_dict, checkpoint_path)
+        # removing the last checkpoint in the manager if more than max models
         if (len(manager_data) > self.max_best_models):
             model_removed_path = manager_data[-1][0]
             manager_data = manager_data[: -1]
@@ -124,6 +124,8 @@ class Trainer:
         self.task = self.model_config.task
         self.exp_dir = self.config.exp_dir
         self.dump_dir = self.config.dump_dir
+
+        # checking for exp directory (depending on whether we are resuming training or not)
         if (self.config.resume_from_checkpoint):
             assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist (resume_from_checkpoint was set True)"
         else:
@@ -248,7 +250,8 @@ class Trainer:
 
         # optimizing torch
         torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
-        # torch.backends.cudnn.benckmark = True # use only if input size is consistent
+        if self.task == "VOC":
+            torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
         # setting up wandb metrics for summarization
         if (self.config.wandb_logger):
@@ -322,10 +325,13 @@ class Trainer:
                 saveplot_alignment(alignments.T, validation_run_align_path) # we take transpose to get (text_length, mel_length) dimension
         else:
             sig_target = audio[rand_ind].squeeze(0).cpu().numpy() # audio: (batch, 1, signal)
+            mel_target = mel[rand_ind].cpu().numpy() # audio: (batch, n_mels, max_frames)
             sig_predicted = fake_audio[rand_ind].squeeze(0).cpu().numpy() # fake_audio: (batch, 1, signal)
             validation_run_sig_tar_path = os.path.join(validation_run_path, "sig_tar.png")
+            validation_run_mel_tar_path = os.path.join(validation_run_path, "mel_tar.png")
             validation_run_sig_pred_path = os.path.join(validation_run_path, "sig_pred.png")
             saveplot_signal(sig_target, validation_run_sig_tar_path)
+            saveplot_mel(mel_target, validation_run_mel_tar_path)
             saveplot_signal(sig_predicted, validation_run_sig_pred_path)
 
         # logging validation data to wandb
@@ -342,8 +348,9 @@ class Trainer:
                     self.wandb.log({'alignment_plot': align_img}, epoch=iteration)
             else:
                 sig_target_img = self.wandb.Image(validation_run_sig_tar_path, caption='real audio')
+                mel_target_img = self.wandb.Image(validation_run_mel_tar_path, caption='mel')
                 sig_predicted_img = self.wandb.Image(validation_run_sig_pred_path, caption='generated audio')
-                self.wandb.log({'signal_plots': [sig_target_img, sig_predicted_img]}, epoch=iteration)
+                self.wandb.log({'signal_plots': [mel_target_img, sig_target_img , sig_predicted_img]}, epoch=iteration)
 
         return valid_loss
 
@@ -399,7 +406,7 @@ class Trainer:
                     self.optimizer_generator.step()
 
                     # discriminator training
-                    fake_audio = self.model_generator(mel)
+                    fake_audio = self.model_generator(mel).detach()
                     loss_discriminator_value = 0.0
                     for _ in range(self.model_config.train_repeat_discriminator):
                         self.optimizer_discriminator.zero_grad()
@@ -432,7 +439,7 @@ class Trainer:
                     if self.task == "TTS":
                         self.wandb.log({'loss': loss_value, 'grad_norm': grad_norm}, epoch=iteration, commit=True)
                     else:
-                        self.wandb.log({'loss_total': loss_generator_value + loss_discriminator_value, 'loss_generator': loss_generator_value, 'loss_discriminator': loss_discriminator_value}, epoch=iteration, commit=True)
+                        self.wandb.log({'loss': {'total': loss_generator_value + loss_discriminator_value, 'generator': loss_generator_value, 'discriminator': loss_discriminator_value}}, epoch=iteration, commit=True)
             
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch

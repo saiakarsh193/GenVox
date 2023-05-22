@@ -66,9 +66,9 @@ trainer_config = TrainerConfig(
     num_loader_workers=0,
     run_validation=True,
     use_cuda=True,
-    epochs=200,
+    epochs=100,
     max_best_models=3,
-    iters_for_checkpoint=1000,
+    iters_for_checkpoint=500,
     dump_dir="dump",
     exp_dir="exp"
 )
@@ -76,7 +76,12 @@ trainer_config = TrainerConfig(
 melgan_config = MelGANConfig()
 # tacotron2_config = Tacotron2Config()
 
-optimizer_config = OptimizerConfig()
+optimizer_config = OptimizerConfig(
+    learning_rate=0.0001,
+    beta1=0.5,
+    beta2=0.9,
+    weight_decay=0
+)
 
 trainer = Trainer(
     trainer_config=trainer_config,

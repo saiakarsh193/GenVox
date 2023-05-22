@@ -260,7 +260,7 @@
   - Added wandb Image plotting along with ground truth and prediction plotting.
 - Added checkpoint resuming for training.
 - Changed model saving format to
-  ```python3
+  ```python
   {
     'model_state_dict': model.parameters(),
     'iteration': iteration
@@ -328,3 +328,18 @@
   - Added `max_frames` to clip or pad to a specific number of frames (and equally in audio signal length) for faster training and cudnn benckmark accelaration.
   - *NOTE*: Need to experiment adding noise as given here [src](https://github.com/seungwonpark/melgan/blob/master/datasets/dataloader.py).
 - Made changes in `trainer` to handle vocoder input.
+
+
+### 22-05-23
+- Added **MelGAN** vocoder.
+  - Fixed the training bug: `.detach()` for generator output during training of discriminator.
+  - Used `torch.backends.cudnn.benckmark = True` for optimization. Fixed the input lengths for every batch.
+- Main fix for GAN vocoder training:
+  ```python
+      optimizer_config = OptimizerConfig(
+      learning_rate=0.0001,
+      beta1=0.5,
+      beta2=0.9,
+      weight_decay=0
+    )
+  ```
