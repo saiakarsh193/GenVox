@@ -1,5 +1,11 @@
 # GenVox
-Pipeline for building TTS models using Tacotron2.
+Pipeline for building TTS
+
+Supported Text2Mel:
+- Tacotron2
+
+Supported Vocoder:
+- MelGAN
 
 ## Usage
 ```bash
@@ -21,17 +27,3 @@ python3 run.py
 ## Development
 Read [devlog](dev_log.md) for more details.  
 Inspired by [NVIDIA](https://github.com/NVIDIA/tacotron2), [Coqui-AI](https://github.com/coqui-ai/TTS), [ESPNET](https://github.com/espnet/espnet).
-
-### Explore
-
-- [ ] Create using Aeneas/WhisperX
-- [ ] Distributed
-
-- [ ] argparse
-- [x] logging
-- [ ] pip standards (with docstrings)
-- [ ] aeneas
-- [x] youtubedl
-- [ ] readme badges
-- [x] config (yaml?)
-- [ ] pip package (export)
