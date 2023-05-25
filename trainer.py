@@ -432,7 +432,7 @@ class Trainer:
                     if self.task == "TTS":
                         self.checkpoint_manager.save_model(iteration, self.model, self.optimizer, validation_loss)
                     else:
-                        self.checkpoint_manager.save_model(iteration, (self.model_generator, self.model_discriminator), (self.optimizer_generator, self.optimizer_discriminator), validation_loss)
+                        self.checkpoint_manager.save_model(iteration, (self.model_generator, self.model_discriminator), (self.optimizer_generator, self.optimizer_discriminator), -iteration)
                 
                 # logging to wandb
                 if (self.config.wandb_logger):
