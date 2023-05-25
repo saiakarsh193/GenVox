@@ -2,10 +2,10 @@
 Pipeline for building TTS
 
 Supported Text2Mel:
-- Tacotron2
+- Tacotron2 - [paper](https://arxiv.org/pdf/1712.05884.pdf)
 
 Supported Vocoder:
-- MelGAN
+- MelGAN - [paper](https://arxiv.org/pdf/1910.06711.pdf)
 
 ## Usage
 ```bash
