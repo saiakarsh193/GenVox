@@ -10,7 +10,7 @@ from typeguard import typechecked
 import g2p_en
 
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
-from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
+from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json, load_json
 from create_dataset import createDatasetFromYoutube
 from text import base_cleaners, symbols
 from audio import normalize_signal, stft, get_mel_filter, get_inverse_mel_filter, fft2mel, amplitude_to_db
@@ -134,11 +134,18 @@ class DatasetProcessor:
             for text in sorted(raw_text):
                 text = text.strip().split(self.config.delimiter)
                 utt_id = text[self.config.uid_index]
+                if (utt_id.find(".") >= 0): # if it ends with .wav then we remove that
+                    utt_id = utt_id[: utt_id.find(".")]
                 utt = text[self.config.utt_index]
                 text_data.append((utt_id, utt))
         elif (self.config.dataset_type == "json"):
-            print(f"json type not supported yet")
-            exit()
+            raw_json = load_json(self.config.transcript_path)
+            for sample in raw_json:
+                utt_id = sample[self.config.uid_keyname]
+                if (utt_id.find(".") >= 0): # if it ends with .wav then we remove that
+                    utt_id = utt_id[: utt_id.find(".")]
+                utt = sample[self.config.utt_keyname]
+                text_data.append((utt_id, utt))
         # extracting wav data
         wav_data = []
         for wav_path in sorted(Path(self.config.wavs_path).rglob("*.wav")):

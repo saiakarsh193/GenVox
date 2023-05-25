@@ -216,6 +216,10 @@ class DatasetConfig(BaseConfig):
                 Default is ``0``.
         utt_index (int): The index of the field containing the utterance in the dataset. (Min: 0)
                 Default is ``1``.
+        uid_keyname (str): The key value containing the unique identifier in the dataset.
+                Default is ``None``.
+        utt_keyname (str): The key value containing the utterance in the dataset.
+                Default is ``None``.
         transcript_path (str): The path to the transcript file for text-based datasets. 
                 Default is ``""``.
         wavs_path (str): The path to the directory containing the audio files for audio-based datasets. 
@@ -237,6 +241,8 @@ class DatasetConfig(BaseConfig):
         delimiter: str = " ",
         uid_index: int = 0,
         utt_index: int = 1,
+        uid_keyname: Optional[str] = None,
+        utt_keyname: Optional[str] = None,
         transcript_path: str = "",
         wavs_path: str = "",
         validation_split: Union[int, float] = 0,
@@ -247,8 +253,10 @@ class DatasetConfig(BaseConfig):
         self.audio_config = audio_config
         self.dataset_type = dataset_type
         self.delimiter = delimiter
-        self.uid_index = uid_index
-        self.utt_index = utt_index
+        self.uid_index = uid_index # used when type -> text
+        self.utt_index = utt_index # used when type -> text
+        self.uid_keyname = uid_keyname # used when type -> json
+        self.utt_keyname = utt_keyname # used when type -> json
         self.transcript_path = transcript_path
         self.wavs_path = wavs_path
         self.validation_split = validation_split
