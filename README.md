@@ -13,6 +13,8 @@ Supported Vocoder:
 conda create --prefix ./ttsenv
 conda activate ./ttsenv
 
+# install python (using 3.8 as it is tested and works)
+conda install python=3.8
 # install dependencies
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
 
