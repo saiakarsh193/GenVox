@@ -73,8 +73,8 @@ def base_cleaners(text, language="english"):
     if (language == "english"):
         text = expand_numbers(text)
         text = expand_abbreviations(text)
-    else:
-        text = remove_numbers(text)
+    # else:
+    #     text = remove_numbers(text)
     text = replace_invalid_symbols(text)
     text = collapse_whitespace(text)
     return text

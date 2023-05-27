@@ -1,6 +1,6 @@
 import os
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig
+from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
 from processors import DownloadProcessor, DatasetProcessor
 from trainer import Trainer
 
@@ -22,7 +22,7 @@ dataset_path = "data/LJSpeech-1.1"
 text_config = TextConfig(
     language="english",
     cleaners=["base_cleaners"],
-    use_g2p=True
+    use_g2p=False
 )
 
 audio_config = AudioConfig(
@@ -48,8 +48,8 @@ dataset_config = DatasetConfig(
     # transcript_path=os.path.join(dataset_path, "transcript.txt"),
     transcript_path=os.path.join(dataset_path, "metadata.csv"),
     wavs_path=os.path.join(dataset_path, "wavs"),
-    remove_wav_dump=True,
-    validation_split=500
+    validation_split=500,
+    dump_dir="dump"
 )
 
 # dataset_processor = DatasetProcessor(dataset_config)
@@ -57,22 +57,40 @@ dataset_config = DatasetConfig(
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
-    experiment_id="run_8",
+    experiment_id="run_10",
+    notes="First Vocoder run",
     wandb_logger=True,
     wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
-    batch_size=32,
+    batch_size=16,
+    validation_batch_size=16,
     num_loader_workers=0,
     run_validation=True,
     use_cuda=True,
     epochs=200,
+    max_best_models=5,
     iters_for_checkpoint=1000,
-    resume_from_checkpoint=True,
-    checkpoint_path='exp/checkpoint_37500.pt',
-    epoch_start=101
+    dump_dir="dump",
+    exp_dir="exp"
 )
 
-tacotron2_config = Tacotron2Config()
-optimizer_config = OptimizerConfig()
+melgan_config = MelGANConfig()
+# tacotron2_config = Tacotron2Config()
 
-trainer = Trainer(text_config, audio_config, dataset_config, trainer_config, tacotron2_config, optimizer_config)
+optimizer_config = OptimizerConfig(
+    learning_rate=0.0001,
+    beta1=0.5,
+    beta2=0.9,
+    weight_decay=0
+)
+
+trainer = Trainer(
+    trainer_config=trainer_config,
+    model_config=melgan_config,
+    # model_config=tacotron2_config,
+    optimizer_config=optimizer_config,
+    audio_config=audio_config,
+    # text_config=text_config,
+    # dataset_config=dataset_config
+)
+
 trainer.train()

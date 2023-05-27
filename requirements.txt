@@ -1,7 +1,9 @@
+numpy
+scipy
+torch
 typeguard
 tqdm
 yt_dlp
-scipy
 matplotlib
 inflect
 wandb

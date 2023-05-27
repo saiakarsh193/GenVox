@@ -10,7 +10,7 @@ from typeguard import typechecked
 import g2p_en
 
 from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig
-from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json
+from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json, load_json
 from create_dataset import createDatasetFromYoutube
 from text import base_cleaners, symbols
 from audio import normalize_signal, stft, get_mel_filter, get_inverse_mel_filter, fft2mel, amplitude_to_db
@@ -118,14 +118,12 @@ class DatasetProcessor:
     
     def __call__(self):
         print(self.config)
-        dump_dir = "dump"
-        wav_dump_dir = os.path.join("dump", "wavs")
-        feature_dump_dir = os.path.join("dump", "feats")
+        dump_dir = self.config.dump_dir
+        wav_dump_dir = os.path.join(dump_dir, "wavs")
+        feature_dump_dir = os.path.join(dump_dir, "feats")
         assert not os.path.isdir(dump_dir), f"dump ({dump_dir}) directory already exists"
         os.mkdir(dump_dir)
-        assert not os.path.isdir(wav_dump_dir), f"wav_dump ({wav_dump_dir}) directory already exists"
         os.mkdir(wav_dump_dir)
-        assert not os.path.isdir(feature_dump_dir), f"feature_dump_dir ({feature_dump_dir}) directory already exists"
         os.mkdir(feature_dump_dir)
 
         # extracting text data
@@ -136,7 +134,17 @@ class DatasetProcessor:
             for text in sorted(raw_text):
                 text = text.strip().split(self.config.delimiter)
                 utt_id = text[self.config.uid_index]
+                if (utt_id.find(".") >= 0): # if it ends with .wav then we remove that
+                    utt_id = utt_id[: utt_id.find(".")]
                 utt = text[self.config.utt_index]
+                text_data.append((utt_id, utt))
+        elif (self.config.dataset_type == "json"):
+            raw_json = load_json(self.config.transcript_path)
+            for sample in raw_json:
+                utt_id = sample[self.config.uid_keyname]
+                if (utt_id.find(".") >= 0): # if it ends with .wav then we remove that
+                    utt_id = utt_id[: utt_id.find(".")]
+                utt = sample[self.config.utt_keyname]
                 text_data.append((utt_id, utt))
         # extracting wav data
         wav_data = []
@@ -175,13 +183,9 @@ class DatasetProcessor:
                 feature_name = os.path.splitext(wav_name)[0] + ".npy"
                 feature_path = os.path.join(feature_dump_dir, feature_name)
                 self.audio_processor.convert2mel(new_wav_path, feature_path)
-                valid_data.append((text_data[i][0], text_data[i][1], feature_path))
-                if (self.config.remove_wav_dump):
-                    os.remove(new_wav_path)
+                # utt_id, text, wav_path, feat_path
+                valid_data.append((text_data[i][0], text_data[i][1], new_wav_path, feature_path))
 
-        if (self.config.remove_wav_dump):
-            shutil.rmtree(wav_dump_dir)
-        
         print("trimmed and removed long and short wav files -> before: {bf_cnt} ({bf_len}), after: {af_cnt} ({af_len}), removed: {rm_cnt} ({rm_len})".format(
             bf_cnt=len(text_data),
             bf_len=sec_to_formatted_time(total_length),
@@ -204,16 +208,13 @@ class DatasetProcessor:
         final_data = []
         for i in range(len(valid_data)):
             tokens = total_tokens[i]
-            tokens_ind = [str(token_map[tk]) for tk in tokens]
-            final_data.append((valid_data[i][2], " ".join(tokens_ind)))
+            tokens_ind = " ".join([str(token_map[token]) for token in tokens])
+            final_data.append(f"{valid_data[i][0]}|{valid_data[i][2]}|{valid_data[i][3]}|{tokens_ind}")
 
         print(f"tokenized text and updated with token index, token vocabulary size: {len(token_set)}")
 
         dump_json(os.path.join(dump_dir, "token_list.json"), token_map)
-        with open(os.path.join(dump_dir, "data.csv"), 'w') as f:
-            for text, wav_path in final_data:
-                f.write(f"{text}|{wav_path}\n")
-
+        
         all_index = set(range(len(final_data)))
         if type(self.config.validation_split) == int:
             validation_count = self.config.validation_split
@@ -223,14 +224,16 @@ class DatasetProcessor:
         validation_index = set(random.sample(all_index, k=validation_count))
         train_index = all_index - validation_index
 
+        with open(os.path.join(dump_dir, "data.csv"), 'w') as f:
+            for index in all_index:
+                f.write(f"{final_data[index]}\n")
+
         with open(os.path.join(dump_dir, "data_train.csv"), 'w') as f:
             for index in train_index:
-                text, wav_path = final_data[index]
-                f.write(f"{text}|{wav_path}\n")
+                f.write(f"{final_data[index]}\n")
 
         with open(os.path.join(dump_dir, "data_validation.csv"), 'w') as f:
             for index in validation_index:
-                text, wav_path = final_data[index]
-                f.write(f"{text}|{wav_path}\n")
+                f.write(f"{final_data[index]}\n")
 
         print(f"split data ({len(all_index)}) into train ({len(train_index)}) and validation ({len(validation_index)})")
