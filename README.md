@@ -9,16 +9,11 @@ Supported Vocoder:
 
 ## Usage
 ```bash
-# for CPU torch installation
-conda create --prefix ./ttsenv pytorch -c pytorch
-
-# for GPU torch installation
-conda create --prefix ./ttsenv pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-
-# activate environment
+# create and activate environment
+conda create --prefix ./ttsenv
 conda activate ./ttsenv
 
-# for other requirements
+# install dependencies
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
 
 python3 run.py
