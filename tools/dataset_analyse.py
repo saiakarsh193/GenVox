@@ -53,11 +53,12 @@ def analyze_data(args):
 
     plt.subplot(224)
     plt.pie(bins_percentage, labels = (bin_label).astype(int), startangle = 90)
-    plt.show()
+    plt.savefig(args.output_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="dataset_analyze.py python script to perform data analysis on directory containing wav")
     parser.add_argument("input_dir", type=str, help="directory containing wav files. will be searched recursively")
+    parser.add_argument("--output_path", "-o", type=str, help="output path to save the image", default="dataset_analysis.png")
     parser.add_argument("--len_nbins", type=int, help="number of bins while plotting bar graph for lengths", default=30)
     args = parser.parse_args()
     analyze_data(args)
