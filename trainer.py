@@ -369,7 +369,7 @@ class Trainer:
         print(f"Batch count: {self.iters_per_epoch}")
         print(f"Device: {self.device}")
         if (self.config.resume_from_checkpoint):
-            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration}")
+            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration_start}")
         
         # setting training variables
         start_train = time.time() # start time of training
