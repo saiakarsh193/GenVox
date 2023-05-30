@@ -3,12 +3,12 @@ from pathlib import Path
 import os
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
+from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig, ModelConfig
 from processors import DatasetProcessor
 from trainer import Trainer
 
 def main(args):
-    print(("=" * 10) + f" GENVOX: ULCA PIPELINE ({args.task})" + ("=" * 10))
+    print(("=" * 10) + f" GENVOX: ULCA PIPELINE ({args.task}) " + ("=" * 10))
 
     if (not os.path.isfile(args.input_path)):
         print(f"{args.input_path} does not exist")
@@ -22,7 +22,7 @@ def main(args):
         par_dir = ""
     data_dir = os.path.join(par_dir, file_name)
     dump_dir = os.path.join(par_dir, "dump")
-    exp_dir = "exp"
+    exp_dir = f"exp_ulca_{file_name}"
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
         os.system(f"unzip -qq {args.input_path} -d {data_dir}")
@@ -75,17 +75,20 @@ def main(args):
         exp_dir=exp_dir
     )
 
+    assert args.model in ModelConfig.MODEL_DETAILS[args.task], f"Invalid model ({args.model}) given for task ({args.task})"
     if (args.task == "TTS"):
-        model_config = Tacotron2Config()
-        optimizer_config = OptimizerConfig()
+        if args.model == "Tacotron2":
+            model_config = Tacotron2Config()
+            optimizer_config = OptimizerConfig()
     else:
-        model_config = MelGANConfig()
-        optimizer_config = OptimizerConfig(
-            learning_rate=0.0001,
-            beta1=0.5,
-            beta2=0.9,
-            weight_decay=0
-        )
+        if args.model == "MelGAN":
+            model_config = MelGANConfig()
+            optimizer_config = OptimizerConfig(
+                learning_rate=0.0001,
+                beta1=0.5,
+                beta2=0.9,
+                weight_decay=0
+            )
 
     trainer = Trainer(
         trainer_config=trainer_config,
@@ -107,6 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, help="batch size for both training and validation", default=32)
     parser.add_argument("--epochs", type=int, help="number of epochs for training", default=200)
     parser.add_argument("--ada", help="if running the code on Ada", action="store_true")
-    parser.add_argument("--task", type=str, choices=["TTS", "VOC"], help="type of task for training (TTS/VOC)", default="TTS")
+    parser.add_argument("--task", type=str, choices=["TTS", "VOC"], help="type of task for training (TTS/VOC)", required=True)
+    parser.add_argument("--model", type=str, help=f"model architecture to be used {ModelConfig.MODEL_DETAILS}", required=True)
     args = parser.parse_args()
     main(args)
