@@ -577,6 +577,9 @@ def load_configs(path: str) -> Dict:
         if task == 'TTS':
             if model_name == 'Tacotron2':
                 configs['model_config'] = Tacotron2Config(**config_json['model_config'])
+        else:
+            if model_name == "MelGAN":
+                configs['model_config'] = MelGANConfig(**config_json['model_config'])
     if 'optimizer_config' in config_json:
         configs['optimizer_config'] = OptimizerConfig(**config_json['optimizer_config'])
     return configs

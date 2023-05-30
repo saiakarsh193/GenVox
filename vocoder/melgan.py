@@ -166,8 +166,7 @@ class Generator(nn.Module):
                 except:
                     layer.remove_weight_norm()
 
-    def inference(self, mel):
-        hop_length = 256
+    def inference(self, mel, hop_length = 256):
         # pad input mel with zeros to cut artifact
         # see https://github.com/seungwonpark/melgan/issues/8
         zero = torch.full((1, self.mel_channel, 10), -11.5129).to(mel.device)
