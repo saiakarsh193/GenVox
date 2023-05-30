@@ -73,7 +73,7 @@ class WandbLogger:
         wandb.login(key=trainer.config.wandb_auth_key)
         wandb.init(
             project=trainer.config.project_name,
-            name=f"exp_{trainer.config.experiment_id}",
+            name=trainer.config.experiment_id,
             notes=trainer.config.notes,
             config={
                 "architecture": trainer.model_config.model_name,
@@ -82,8 +82,7 @@ class WandbLogger:
                 "batch_size": trainer.config.batch_size,
                 "seed": trainer.config.seed,
                 "device": trainer.device
-            },
-            tags=["dev", "ljspeech"],
+            }
         )
 
     def define_metric(self, value, summary):
