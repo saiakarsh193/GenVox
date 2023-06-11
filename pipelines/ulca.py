@@ -44,7 +44,7 @@ def main(args):
     )
     audio_config = AudioConfig(
         sampling_rate=args.sampling_rate,
-        min_wav_duration=3,
+        min_wav_duration=2,
         max_wav_duration=15,
         filter_length=1024,
         log_func="np.log",

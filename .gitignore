@@ -1,6 +1,6 @@
 data/
 dump/
-exp/
+exp*/
 wandb/
 ttsenv/
 old_exp/

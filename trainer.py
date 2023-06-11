@@ -9,7 +9,7 @@ import wandb
 import time
 
 from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, ModelConfig, Tacotron2Config, OptimizerConfig, write_configs
-from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
+from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time, print_count_parameters
 from utils import saveplot_mel, saveplot_alignment, saveplot_gate, saveplot_signal
 import tts
 import vocoder
@@ -241,11 +241,14 @@ class Trainer:
         if self.task == "TTS":
             self.model.train()
             print(self.model)
+            print_count_parameters(self.model)
         else:
             self.model_generator.train()
             self.model_discriminator.train()
             print(self.model_generator)
             print(self.model_discriminator)
+            print_count_parameters(self.model_generator)
+            print_count_parameters(self.model_discriminator)
 
         # optimizing torch
         torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)

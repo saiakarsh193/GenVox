@@ -113,13 +113,20 @@ class TTSModel:
 
 
 if __name__ == "__main__":
+    # tts = TTSModel(
+    #     'old_exp/tac2_lj_74k.yaml',
+    #     'old_exp/tac2_lj_74k.pt',
+    #     'old_exp/melg_lj.yaml',
+    #     'old_exp/melg_lj.pt',
+    #     False)
+    # mel = tts('with the active cooperation of the responsible agencies and with the understanding of the people of the United States in their demands upon their President')
     tts = TTSModel(
-        'old_exp/tac2_lj_74k.yaml',
-        'old_exp/tac2_lj_74k.pt',
-        'old_exp/melg_lj.yaml',
-        'old_exp/melg_lj.pt',
+        'old_exp/tac2_hin_m.yaml',
+        'old_exp/tac2_hin_m.pt',
+        # 'old_exp/melg_lj.yaml',
+        # 'old_exp/melg_lj.pt',
         False)
-    mel = tts('with the active cooperation of the responsible agencies and with the understanding of the people of the United States in their demands upon their President')
+    mel = tts('से अधिक अन्य भाषाओं के बीच शब्दों, वाक्यांशों और वेब पृष्ठों का तुरंत अनुवाद करती है।')
     saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)
     saveplot_signal(wav, 'inf_sig.png')
