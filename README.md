@@ -39,7 +39,7 @@ module load u18/cuda/10.2
 module load u18/ffmpeg/5.0.1
 
 
-# create and activate environment with python 3.8 (as it is tested and works)
+# create environment with python 3.8 (as it is tested and working) and activate it
 conda create --name genvox python=3.8
 conda activate genvox
 # or
@@ -47,10 +47,9 @@ conda create --prefix ./ttsenv python=3.8
 conda activate ./ttsenv
 
 # install dependencies
+pip install -r requirements.txt
+# or
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
-
-# for using multiple GPUs (distributed training using Huggingface Accelerate)
-conda install accelerate -c conda-forge
 ```
 
 ### Set up the data and run the code
