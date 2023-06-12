@@ -47,6 +47,9 @@ conda activate ./ttsenv
 conda install python=3.8
 # install dependencies
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
+
+# for using multiple GPUs (distributed training using Huggingface Accelerate)
+conda install accelerate -c conda-forge
 ```
 
 ### Set up the data and run the code
