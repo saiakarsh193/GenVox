@@ -78,7 +78,7 @@ class TTSModel:
         with torch.no_grad():
             print(text)
             tokens = self.text_processor.tokenize(text)
-            tokens = [self.token_map[tk] for tk in tokens]
+            tokens = [self.token_map[tk] for tk in tokens if tk in self.token_map]
             tokens = torch.IntTensor(tokens).unsqueeze(0).to(self.device)
             y_pred = self.model.inference(tokens)
             mel, mel_postnet, gate, alignments = y_pred
@@ -123,9 +123,9 @@ if __name__ == "__main__":
     tts = TTSModel(
         'old_exp/tac2_hin_m.yaml',
         'old_exp/tac2_hin_m.pt',
-        # 'old_exp/melg_lj.yaml',
-        # 'old_exp/melg_lj.pt',
-        False)
+        'old_exp/melg_lj.yaml',
+        'old_exp/melg_lj.pt',
+        use_cuda=False)
     mel = tts('से अधिक अन्य भाषाओं के बीच शब्दों, वाक्यांशों और वेब पृष्ठों का तुरंत अनुवाद करती है।')
     saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)

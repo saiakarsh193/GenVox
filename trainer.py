@@ -70,7 +70,6 @@ class CheckpointManager:
 
 class WandbLogger:
     def __init__(self, trainer):
-        wandb.login(key=trainer.config.wandb_auth_key)
         wandb.init(
             project=trainer.config.project_name,
             name=trainer.config.experiment_id,

@@ -58,6 +58,10 @@ conda install accelerate -c conda-forge
 mkdir data
 # move/download the dataset into data directory and then edit run.py accordingly
 
+# for using wandb for logging, you need to first login (if not already done)
+wandb login
+# then type your API key (you can find your API key in your browser at https://wandb.ai/authorize)
+
 # once everything is all setup, you can run the code
 python3 run.py
 ```
