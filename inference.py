@@ -76,7 +76,7 @@ class TTSModel:
     @typechecked
     def __call__(self, text: str):
         with torch.no_grad():
-            print(text)
+            # print(text)
             tokens = self.text_processor.tokenize(text)
             tokens = [self.token_map[tk] for tk in tokens if tk in self.token_map]
             tokens = torch.IntTensor(tokens).unsqueeze(0).to(self.device)
@@ -88,8 +88,8 @@ class TTSModel:
             mel_postnet = mel_postnet.cpu().numpy()
             gate_pred = torch.sigmoid(gate).cpu().numpy().reshape(-1)
             alignments = alignments.cpu().numpy().T
-        saveplot_gate(None, gate_pred, 'inf_gate.png', title=True)
-        saveplot_alignment(alignments, 'inf_align.png', title=True)
+        # saveplot_gate(None, gate_pred, 'inf_gate.png', title=True)
+        # saveplot_alignment(alignments, 'inf_align.png', title=True)
         return mel_postnet
 
     def mel2audio(self, mel):
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         'old_exp/melg_lj.pt',
         use_cuda=False)
     mel = tts('से अधिक अन्य भाषाओं के बीच शब्दों, वाक्यांशों और वेब पृष्ठों का तुरंत अनुवाद करती है।')
-    saveplot_mel(mel, 'inf_mel.png')
+    # saveplot_mel(mel, 'inf_mel.png')
     fs, wav = tts.mel2audio(mel)
-    saveplot_signal(wav, 'inf_sig.png')
+    # saveplot_signal(wav, 'inf_sig.png')
     scipy.io.wavfile.write('inf_out.wav', fs, wav)
