@@ -39,13 +39,16 @@ module load u18/cuda/10.2
 module load u18/ffmpeg/5.0.1
 
 
-# create and activate environment
-conda create --prefix ./ttsenv
+# create environment with python 3.8 (as it is tested and working) and activate it
+conda create --name genvox python=3.8
+conda activate genvox
+# or
+conda create --prefix ./ttsenv python=3.8
 conda activate ./ttsenv
 
-# install python (using 3.8 as it is tested and works)
-conda install python=3.8
 # install dependencies
+pip install -r requirements.txt
+# or
 ./ttsenv/bin/python3 -m pip install -r requirements.txt
 ```
 
@@ -54,6 +57,10 @@ conda install python=3.8
 # create data directory
 mkdir data
 # move/download the dataset into data directory and then edit run.py accordingly
+
+# for using wandb for logging, you need to first login (if not already done)
+wandb login
+# then type your API key (you can find your API key in your browser at https://wandb.ai/authorize)
 
 # once everything is all setup, you can run the code
 python3 run.py

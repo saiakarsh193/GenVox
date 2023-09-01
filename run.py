@@ -60,7 +60,6 @@ trainer_config = TrainerConfig(
     experiment_id="run_10",
     notes="First Vocoder run",
     wandb_logger=True,
-    wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
     batch_size=16,
     validation_batch_size=16,
     num_loader_workers=0,

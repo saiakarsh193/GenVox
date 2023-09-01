@@ -70,7 +70,6 @@ def main(args):
         project_name="genvox_ulca_tts",
         experiment_id=exp_id,
         wandb_logger=True,
-        wandb_auth_key="56acc87c7b95662ff270b9556cdf68de699a210f",
         batch_size=args.batch_size,
         validation_batch_size=args.batch_size,
         num_loader_workers=0,
