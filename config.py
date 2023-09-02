@@ -235,8 +235,8 @@ class DatasetConfig(BaseConfig):
     @typechecked
     def __init__(
         self,
-        text_config: TextConfig,
-        audio_config: AudioConfig,
+        text_config: TextConfig = TextConfig(),
+        audio_config: AudioConfig = AudioConfig(),
         dataset_type: _DATASET_TYPE = "text",
         delimiter: str = " ",
         uid_index: int = 0,
