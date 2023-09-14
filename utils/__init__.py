@@ -5,13 +5,13 @@ import json
 import yaml
 import datetime
 import numpy as np
-import time
-from functools import wraps
-import matplotlib.pyplot as plt
+from typing import Union, Tuple, Dict
 
-def download_YT_mp3(link, target, verbose = False):
-    # download options for youtube_dl
-    ydl_opts = {
+def download_wav_from_youtube(link: str, target: str, verbose: bool = False) -> None:
+    """
+    download audio files from Youtube in wav format
+    """
+    ydl_opts = { # download options for youtube_dl
         'format': 'bestaudio/best',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
@@ -25,17 +25,26 @@ def download_YT_mp3(link, target, verbose = False):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([link])
 
-def is_youtube_link(link):
+def is_youtube_link(link: str) -> bool:
+    """
+    check if a given link is from youtube or not
+    """
     if "youtube.com/watch?v=" in link:
         return True
     elif "youtu.be/" in link:
         return True
     return False
 
-def get_random_HEX_name(size: int = 60):
+def get_random_HEX_name(size: int = 60) -> str:
+    """
+    get a random HEX string
+    """
     return hex(random.getrandbits(size))[2: ]
 
-def dBFS(signal):
+def dBFS(signal: np.ndarray) -> Union[float, int]:
+    """
+    measure the dBFS (decibels relative to full scale) value for a given signal
+    """
     max_amplitude = np.iinfo(signal.dtype).max
     norm_signal = signal / max_amplitude
     rms = np.sqrt(np.mean(np.square(norm_signal)))
@@ -44,7 +53,10 @@ def dBFS(signal):
     dbfs = 20 * np.log10(rms)
     return dbfs
 
-def get_silent_signal_ind(signal, fs, silence_threshold):
+def get_non_silent_boundary(signal: np.ndarray, fs: int, silence_threshold: Union[float, int]) -> Tuple[int, int]:
+    """
+    returns the boundary indices of a signal which are not silent based on the given threshold
+    """
     chunk_size = 20 # ms
     chunk_length = int(chunk_size * 0.001 * fs) # frames
 
@@ -63,15 +75,22 @@ def get_silent_signal_ind(signal, fs, silence_threshold):
     right_ind = signal.shape[0] - right_ind
     return left_ind, right_ind
 
-def trim_audio_silence(input_path, output_path, silence_threshold: float = -50.0):
+def trim_audio_silence(input_path: str, output_path: str, silence_threshold: float = -50.0) -> Tuple[Tuple[int, int], Tuple[float, float]]:
+    """
+    returns both the boundary indices of a signal which are not silent based on the given threshold, and also the old and new length of the trimmed audio.
+    it also saved the trimmed audio to the given path
+    """
     fs, wav = scipy.io.wavfile.read(input_path)
-    left_ind, right_ind = get_silent_signal_ind(wav, fs, silence_threshold)
+    left_ind, right_ind = get_non_silent_boundary(wav, fs, silence_threshold)
     assert left_ind < right_ind, "empty audio signal given for trimming silence"
     trimmed_wav = wav[left_ind: right_ind]
     scipy.io.wavfile.write(output_path, fs, trimmed_wav)
     return (left_ind, right_ind), (wav.shape[0] / fs, trimmed_wav.shape[0] / fs)
 
-def sec_to_formatted_time(seconds):
+def sec_to_formatted_time(seconds: int) -> str:
+    """
+    returns the standard time formatted string for a given amount of time (in seconds)
+    """
     seconds = int(seconds)
     minutes = int(seconds / 60)
     hours = int(minutes / 60)
@@ -83,39 +102,48 @@ def sec_to_formatted_time(seconds):
         return f"{days}-{hours}:{minutes}:{seconds}"
     return f"{hours}:{minutes}:{seconds}"
 
-def current_formatted_time(sec_add: int = 0):
+def current_formatted_time(sec_add: int = 0) -> str:
+    """
+    returns the standard time formatted string for the current time
+    """
     dt_now = datetime.datetime.now()
     dt_now = dt_now + datetime.timedelta(0, sec_add)
     return dt_now.strftime("%Y-%m-%d %H:%M:%S")
 
-def center_print(sentence: str, space_factor: float = 0.5):
+def center_print(sentence: str, space_factor: float = 0.5) -> None:
+    """
+    prints given string in the center
+    """
     pad_left = (100 - len(sentence))
     space_pad = len(sentence) + int(pad_left * space_factor)
     sentence = sentence.center(space_pad, ' ').center(100, '=')
     print(sentence)
 
-def log_print(*args):
+def log_print(*args) -> None:
     print(current_formatted_time(), *args)
 
-def dump_json(path, data):
+def dump_json(path: str, data: Dict) -> None:
     with open(path, 'w') as f:
         json.dump(data, f, indent=4)
 
-def load_json(path):
+def load_json(path: str) -> Dict:
     with open(path, 'r') as f:
         data = json.load(f)
     return data
 
-def dump_yaml(path, data):
+def dump_yaml(path: str, data: Dict) -> None:
     with open(path, 'w') as f:
         yaml.dump(data, f, sort_keys=False, allow_unicode=True)
 
-def load_yaml(path):
+def load_yaml(path: str) -> Dict:
     with open(path, 'r') as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)
     return data
 
-def human_readable_int(val: int, precision: int = 2):
+def human_readable_int(val: int, precision: int = 2) -> str:
+    """
+    converts an integer into a human readable format
+    """
     K, M, B = 1e3, 1e6, 1e9
     if abs(val) < K:
         return str(val)
@@ -131,7 +159,10 @@ def human_readable_int(val: int, precision: int = 2):
         return f"{val // B}B"
     return f"{val / B:.{precision}f}B"
 
-def count_parameters(model):
+def count_parameters(model) -> Dict[str, int]:
+    """
+    count the number of parameters in a given torch model
+    """
     total_c = 0
     trainable_c = 0
     for p in model.parameters():
@@ -140,7 +171,10 @@ def count_parameters(model):
             trainable_c += p.numel()
     return {"total_parameters": total_c, "trainable_parameters": trainable_c, "nontrainable_parameters": total_c - trainable_c}
 
-def print_count_parameters(model):
+def print_parameter_count(model):
+    """
+    print the number of parameters in a given torch model
+    """
     counts = count_parameters(model)
     preheading = ("-" * 10) + f" {model.__class__.__module__}.{model.__class__.__name__} (Parameters Count Summary) " + ("-" * 10)
     postheading = ("-" * len(preheading))
@@ -150,57 +184,3 @@ def print_count_parameters(model):
     print("Non-Trainable Parameters : " + str(counts["nontrainable_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["nontrainable_parameters"]) + ")")
     print("Total Parameters         : " + str(counts["total_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["total_parameters"]) + ")")
     print(postheading)
-
-########### plotters ############
-
-def saveplot_mel(mel, path, title=False):
-    plt.close()
-    plt.figure()
-    plt.imshow(mel, aspect='auto', origin='lower')
-    if title:
-        plt.title("mel spectrogram")
-    plt.tight_layout()
-    plt.savefig(path)
-
-def saveplot_signal(signal, path, title=False):
-    plt.close()
-    plt.figure()
-    plt.plot(signal)
-    if title:
-        plt.title("wav signal")
-    plt.tight_layout()
-    plt.savefig(path)
-
-def saveplot_alignment(alignment, path, title=False):
-    plt.close()
-    plt.figure()
-    plt.imshow(alignment, aspect="auto", origin="lower", interpolation="none")
-    if title:
-        plt.title("alignment")
-    plt.tight_layout()
-    plt.savefig(path)
-
-def saveplot_gate(gate_target, gate_pred, path, title=False, plot_both=False):
-    plt.close()
-    plt.figure()
-    if plot_both and type(gate_target) == np.ndarray:
-        plt.plot(gate_target, color='blue', alpha=0.5, label='gate target')
-    plt.plot(gate_pred, color='red', alpha=0.8, label='gate prediction')
-    if title:
-        plt.title("gate")
-    plt.legend(loc='upper left')
-    plt.tight_layout()
-    plt.savefig(path)
-
-############ decorators ############
-
-
-def function_timer(func):
-    @wraps(func)
-    def inner_function(*args, **kwargs):
-        st = time.time()
-        return_value = func(*args, **kwargs)
-        en = time.time()
-        print(f"{func.__name__}() time taken: {en - st}")
-        return return_value
-    return inner_function
