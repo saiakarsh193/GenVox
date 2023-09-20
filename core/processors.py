@@ -74,6 +74,7 @@ class TextProcessor:
     
     def generate_token_map(self) -> Dict[str, int]:
         self.token_map = {sym: ind for ind, sym in enumerate(sorted(self.all_unique_tokens))}
+        self.config.token_map = self.token_map
         return self.token_map
     
     def tokens_to_indices(self, tokens: List[str]) -> List[int]:
@@ -121,7 +122,6 @@ class DataPreprocessor:
             validation_split: Union[int, float] = 0.1,
             dump_dir: str = "dump",
         ) -> None:
-        
         self.data: List[Dict] = []
         for dataset in datasets:
             self.data += dataset.data
@@ -164,24 +164,22 @@ class DataPreprocessor:
                 wav_len: float = wav.shape[0] / fs
             if (self.audio_config.min_wav_duration <= wav_len and wav_len <= self.audio_config.max_wav_duration): # only if wav_len is in the desired range
                 valid_length += wav_len
-                wav_name = os.path.basename(sample["audio_path"])
-                new_wav_path = os.path.join(self.wav_dump_dir, wav_name)
+                wav_path = os.path.join(self.wav_dump_dir, sample["unique_id"] + ".wav")
                 if (self.audio_config.trim_silence): # if trim, first write trimmed audio then process it and remove intermediate file
-                    temp_wav_path = new_wav_path + "_"
+                    temp_wav_path = wav_path + "_"
                     scipy.io.wavfile.write(temp_wav_path, fs, wav[left_ind: right_ind])
-                    self.audio_processor.format_audio2wav(temp_wav_path, new_wav_path)
+                    self.audio_processor.format_audio2wav(temp_wav_path, wav_path)
                     os.remove(temp_wav_path)
                 else: # else just process it directly
-                    self.audio_processor.format(sample["audio_path"], new_wav_path)
+                    self.audio_processor.format(sample["audio_path"], wav_path)
                 # extract features from the processed audio
-                feature_name = os.path.splitext(wav_name)[0] + ".npy"
-                feature_path = os.path.join(self.feature_dump_dir, feature_name)
-                self.audio_processor.convert_wav2mel(new_wav_path, feature_path)
+                feature_path = os.path.join(self.feature_dump_dir, sample["unique_id"] + ".npy")
+                self.audio_processor.convert_wav2mel(wav_path, feature_path)
                 # tokenize text
                 tokens = self.text_processor.tokenize(sample["text"])
                 valid_data.append({
                     "unique_id": sample["unique_id"],
-                    "audio_path": new_wav_path,
+                    "audio_path": wav_path,
                     "feature_path": feature_path,
                     "tokens": tokens
                 })

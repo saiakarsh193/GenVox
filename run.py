@@ -1,11 +1,8 @@
 # import os
 from utils.formatters import BaseDataset
-from configs import TextConfig, AudioConfig
+from configs import TextConfig, AudioConfig, TrainerConfig
 from core.processors import DataPreprocessor
-
-# from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
-# from processors import DownloadProcessor, DatasetProcessor
-# from trainer import Trainer
+from core.trainer import Trainer
 
 dataset = BaseDataset(
     dataset_path="data/LJSpeech_test",
@@ -49,9 +46,7 @@ data_preprocessor = DataPreprocessor(
     validation_split=500,
     dump_dir="dump"
 )
-data_preprocessor.run()
-
-exit()
+# data_preprocessor.run()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
@@ -70,24 +65,24 @@ trainer_config = TrainerConfig(
     exp_dir="exp"
 )
 
-melgan_config = MelGANConfig()
+# # melgan_config = MelGANConfig()
 # tacotron2_config = Tacotron2Config()
 
-optimizer_config = OptimizerConfig(
-    learning_rate=0.0001,
-    beta1=0.5,
-    beta2=0.9,
-    weight_decay=0
-)
+# optimizer_config = OptimizerConfig(
+#     learning_rate=0.0001,
+#     beta1=0.5,
+#     beta2=0.9,
+#     weight_decay=0
+# )
 
-trainer = Trainer(
-    trainer_config=trainer_config,
-    model_config=melgan_config,
-    # model_config=tacotron2_config,
-    optimizer_config=optimizer_config,
-    audio_config=audio_config,
-    # text_config=text_config,
-    # dataset_config=dataset_config
-)
+# trainer = Trainer(
+#     trainer_config=trainer_config,
+#     model_config=melgan_config,
+#     # model_config=tacotron2_config,
+#     optimizer_config=optimizer_config,
+#     audio_config=audio_config,
+#     # text_config=text_config,
+#     # dataset_config=dataset_config
+# )
 
-trainer.train()
+# trainer.train()

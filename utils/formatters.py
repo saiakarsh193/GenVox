@@ -27,7 +27,7 @@ _FORMATTER_TYPES = Literal[
 
 class BaseDataset:
     """BaseDataset is used to extract data using a formatter and store it as List[Dict]"""
-    def __init__(self, dataset_path: str, formatter: _FORMATTER_TYPES, dataset_name: Optional[str] = None):
+    def __init__(self, dataset_path: str, formatter: _FORMATTER_TYPES, dataset_name: Optional[str] = None) -> None:
         if formatter == "ljspeech":
             self.data = _ljspeech_formatter(src_path=dataset_path)
         # get prefix for unique_id
@@ -41,12 +41,3 @@ class BaseDataset:
     
     def __getitem__(self, ind: int) -> Dict:
         return self.data[ind]
-    
-if __name__ == "__main__":
-    data = BaseDataset(
-        dataset_path="data/LJSpeech_test",
-        formatter="ljspeech",
-        dataset_name="dummy"
-    )
-    print(len(data))
-    print(data[: 10])
