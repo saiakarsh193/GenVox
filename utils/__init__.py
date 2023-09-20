@@ -171,7 +171,7 @@ def count_parameters(model) -> Dict[str, int]:
             trainable_c += p.numel()
     return {"total_parameters": total_c, "trainable_parameters": trainable_c, "nontrainable_parameters": total_c - trainable_c}
 
-def print_parameter_count(model):
+def print_parameter_count(model) -> None:
     """
     print the number of parameters in a given torch model
     """

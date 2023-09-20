@@ -1,23 +1,23 @@
-import os
+# import os
+from utils.formatters import BaseDataset
+from configs import TextConfig, AudioConfig
+from core.processors import DataPreprocessor
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
-from processors import DownloadProcessor, DatasetProcessor
-from trainer import Trainer
+# from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
+# from processors import DownloadProcessor, DatasetProcessor
+# from trainer import Trainer
 
-dataset_path = "data/LJSpeech-1.1"
-# dataset_path = "data/LJSpeech_test"
-# dataset_path = "data/youtube_3b1b"
+dataset = BaseDataset(
+    dataset_path="data/LJSpeech_test",
+    formatter="ljspeech",
+    dataset_name="u1"
+)
 
-# download_config = DownloadConfig(
-#     is_youtube=True,
-#     youtube_link="https://www.youtube.com/watch?v=fRed0Xmc2Wg",
-#     directory_path=dataset_path,
-#     create_directory=True,
-#     speaker_id="3B1B"
-# )
-
-# download_processor = DownloadProcessor(download_config)
-# download_processor()
+dataset2 = BaseDataset(
+    dataset_path="data/LJSpeech_small",
+    formatter="ljspeech",
+    dataset_name="u2"
+)
 
 text_config = TextConfig(
     language="english",
@@ -38,22 +38,20 @@ audio_config = AudioConfig(
     mel_fmin=0.0,
     mel_fmax=8000.0,
     log_func="np.log",
-    ref_level_db=1
+    ref_level_db=1.0
 )
 
-dataset_config = DatasetConfig(
+data_preprocessor = DataPreprocessor(
+    datasets=[dataset2],
+    # datasets=[dataset, dataset2],
     text_config=text_config,
     audio_config=audio_config,
-    delimiter="|",
-    # transcript_path=os.path.join(dataset_path, "transcript.txt"),
-    transcript_path=os.path.join(dataset_path, "metadata.csv"),
-    wavs_path=os.path.join(dataset_path, "wavs"),
     validation_split=500,
     dump_dir="dump"
 )
+data_preprocessor.run()
 
-# dataset_processor = DatasetProcessor(dataset_config)
-# dataset_processor()
+exit()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
