@@ -12,7 +12,6 @@ def check_argument(name: str, value: Union[float, int], min_val: Optional[Union[
     else:
         assert (value >= min_val and value <= max_val), f"The value \'{name}\' ({value}) is not in the required range ({min_val} -> {max_val})."
 
-
 class BaseConfig:
     def __str__(self, level: int = 0) -> str:
         prefix_main = (("├── " + "    " * (level - 1)) if level > 0 else "")
@@ -70,7 +69,6 @@ class BaseConfig:
             del config_dict[config_name]["CONFIG_TYPE"]
             configs[config_name] = CONFIG_MAP[config_type](**config_dict[config_name])
         return configs
-
 
 class TextConfig(BaseConfig):
     """
@@ -280,3 +278,58 @@ class TrainerConfig(BaseConfig):
         if (self.resume_from_checkpoint):
             assert self.checkpoint_path, "checkpoint_path not provided (resume_from_checkpoint has been enabled) to start training"
         check_argument("epoch_start", self.epoch_start, min_val=1)
+
+# class DownloadConfig(BaseConfig):
+#     """
+#     Config for DownloadProcessor
+
+#     Args:
+#         download_link (str): A string containing a direct download link for the audio file.
+#                 Default is ``""``.
+#         is_youtube (bool): A boolean indicating whether the audio is from a YouTube video.
+#                 Default is ``False``.
+#         youtube_link (str): A string containing the YouTube video link (is_youtube should be True).
+#                 Default is ``""``.
+#         speaker_id (str): The ID of the speaker in the audio file.
+#                 Default is ``""``.
+#         create_directory (bool): Whether to create a new directory for the downloaded file.
+#                 Default is ``False``.
+#         directory_path (str): The path of the directory where the downloaded file will be saved.
+#                 Default is ``""``.
+#         verbose (bool): Whether to print messages during the download process.
+#                 Default is ``True``.
+#     Raises:
+#         AssertionError: If `youtube_link` or `speaker_id` are not given when `is_youtube` is True,
+#             If `download_link` is not given when `is_youtube` is False.
+#             If `create_directory` is True and `directory_path` already exists,
+#             If `create_directory` is False and `directory_path` does not exist.
+#     """
+#     def __init__(
+#         self,
+#         download_link: str = "",
+#         is_youtube: bool = False,
+#         youtube_link: str = "",
+#         speaker_id: str = "",
+#         create_directory: bool = False,
+#         directory_path: str = "",
+#         verbose: bool = True
+#     ):
+#         self.download_link = download_link
+#         self.is_youtube = is_youtube
+#         self.youtube_link = youtube_link
+#         self.speaker_id = speaker_id
+#         self.create_directory = create_directory
+#         self.directory_path = directory_path
+#         self.verbose = verbose
+
+#         if (self.is_youtube):
+#             assert self.youtube_link, "youtube_link not given"
+#             assert self.speaker_id, "speaker_id not given"
+#         else:
+#             assert self.download_link, "download_link not given"
+        
+#         if (self.create_directory):
+#             assert not os.path.isdir(self.directory_path), f"directory_path ({self.directory_path}) already exists"
+#             os.mkdir(self.directory_path)
+#         else:
+#             assert os.path.isdir(self.directory_path), f"directory_path ({self.directory_path}) does not exist"
