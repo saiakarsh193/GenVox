@@ -187,97 +187,84 @@ class TrainerConfig(BaseConfig):
                 Default is ``""``.
         notes (Optional[str]): Additional notes or description for the experiment. 
                 Default is ``None``.
-        batch_size (int): The batch size for training. 
-                Default is ``64``.
-        num_loader_workers (int): The number of worker processes for data loading. 
-                Default is ``2``.
-        run_validation (bool): Whether to run validation during training. 
-                Default is ``True``.
-        validation_batch_size (int): The batch size for validation. 
-                Default is ``32``.
-        epochs (int): The number of training epochs. 
-                Default is ``100``.
-        seed (int): The random seed for reproducibility. 
-                Default is ``0``.
         use_cuda (bool): Whether to use CUDA for training if available. 
                 Default is ``False``.
-        max_best_models (int): The maximum number of best models to save during training. 
-                Default is ``5``.
+        seed (int): The random seed for reproducibility. 
+                Default is ``0``.
+        epochs (int): The number of training epochs. 
+                Default is ``100``.
+        batch_size (int): The batch size for training. 
+                Default is ``64``.
+        eval_batch_size (int): The batch size for evaluation. 
+                Default is ``32``.
+        num_loader_workers (int): The number of worker processes for data loading. 
+                Default is ``2``.
         iters_for_checkpoint (int): The number of iterations between saving checkpoints. 
                 Default is ``1``.
+        max_best_models (int): The maximum number of best models to save during training. 
+                Default is ``5``.
         save_optimizer_dict (bool): Whether to save the optimizer state dictionary in checkpoints. 
                 Default is ``False``.
-        wandb_logger (bool): Whether to use wandb for logging. 
-                Default is ``True``.
-        resume_from_checkpoint (bool): Whether to resume training from a checkpoint. 
+        debug_run (bool): Whether to do a debugging run, which has no training, evaluation, logging. 
                 Default is ``False``.
-        checkpoint_path (str): The path to the checkpoint file for resuming training. 
-                Default is an ``""``.
-        epoch_start (int): The starting epoch count. 
-                Default is ``1``.
-        exp_dir (str): The directory for storing experiment results.
-                Default is ``"exp"``.
-        dump_dir (str): The directory for storing dumped files.
-                Default is ``"dump"``.
+        run_eval (bool): Whether to run evaluation during training. 
+                Default is ``True``.
+        use_wandb (bool): Whether to use wandb for logging. 
+                Default is ``True``.
+        checkpoint_path (str): The path to the checkpoint file for resuming training. Ignored if None. 
+                Default is an ``None``.
     Raises:
         AssertionError: If `project_name` is not provided.
             If `experiment_id` is not provided, a random ID will be generated.
             If `epochs`, `max_best_models`, or `iters_for_checkpoint` are less than 1.
-            If `resume_from_checkpoint` is True and `checkpoint_path` is not provided.
-            If `epoch_start` is less than 1.
     """
     def __init__(
         self,
         project_name: str = "",
         experiment_id: str = "",
         notes: Optional[str] = None,
-        batch_size: int = 64,
-        num_loader_workers: int = 2,
-        run_validation: bool = True,
-        validation_batch_size: int = 32,
-        epochs: int = 100,
-        seed: int = 0,
         use_cuda: bool = False,
-        max_best_models: int = 5,
+        seed: int = 0,
+        epochs: int = 100,
+        batch_size: int = 64,
+        eval_batch_size: int = 32,
+        num_loader_workers: int = 2,
         iters_for_checkpoint: int = 1,
+        max_best_models: int = 5,
         save_optimizer_dict: bool = False,
-        wandb_logger: bool = True,
-        resume_from_checkpoint: bool = False,
-        checkpoint_path: str = "",
-        epoch_start: int = 1,
-        exp_dir: str = "exp",
-        dump_dir: str = "dump",
+        debug_run: bool = False,
+        run_eval: bool = True,
+        use_wandb: bool = True,
+        checkpoint_path: Optional[str] = None,
     ):
-        self.exp_dir = exp_dir
-        self.dump_dir = dump_dir
+        # project details
         self.project_name = project_name
         self.experiment_id = experiment_id
         self.notes = notes
-        self.batch_size = batch_size
-        self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
-        self.run_validation = run_validation
-        self.validation_batch_size = validation_batch_size
-        self.epochs = epochs
-        self.seed = seed
+        # hyper params
         self.use_cuda = use_cuda
-        self.max_best_models = max_best_models
+        self.seed = seed
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.eval_batch_size = eval_batch_size
+        self.num_loader_workers = num_loader_workers # for DataLoader(num_workers=___) in torch.utils.data
+        # checkpointing
         self.iters_for_checkpoint = iters_for_checkpoint
+        self.max_best_models = max_best_models
         self.save_optimizer_dict = save_optimizer_dict
-        self.wandb_logger = wandb_logger
-        self.resume_from_checkpoint = resume_from_checkpoint
-        self.checkpoint_path = checkpoint_path
-        self.epoch_start = epoch_start # 1-indexed epoch counter
+        # modes
+        self.debug_run = debug_run # no evaluation, no wandb, simple train loop without backward prop
+        self.run_eval = run_eval # run evaluation
+        self.use_wandb = use_wandb # log to wandb
+        self.checkpoint_path = checkpoint_path # checkpoint path for resuming training
 
         assert self.project_name, "project_name not provided"
         if self.experiment_id == "":
             self.experiment_id = get_random_HEX_name(40)
             print(f"experiment_id not provided, hence randomly generated ({self.experiment_id})")
         check_argument("epochs", self.epochs, min_val=1)
-        check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
         check_argument("iters_for_checkpoint", self.iters_for_checkpoint, min_val=1)
-        if (self.resume_from_checkpoint):
-            assert self.checkpoint_path, "checkpoint_path not provided (resume_from_checkpoint has been enabled) to start training"
-        check_argument("epoch_start", self.epoch_start, min_val=1)
+        check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
 
 # class DownloadConfig(BaseConfig):
 #     """
