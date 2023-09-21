@@ -119,7 +119,7 @@ class DataPreprocessor:
             datasets: List[BaseDataset],
             text_config: TextConfig,
             audio_config: AudioConfig,
-            validation_split: Union[int, float] = 0.1,
+            eval_split: Union[int, float] = 0.1,
             dump_dir: str = "dump",
         ) -> None:
         self.data: List[Dict] = []
@@ -130,7 +130,7 @@ class DataPreprocessor:
         self.audio_config = audio_config
         self.text_processor = TextProcessor(self.text_config)
         self.audio_processor = AudioProcessor(self.audio_config)
-        self.validation_split = validation_split
+        self.eval_split = eval_split
 
         self.dump_dir = dump_dir
         self.wav_dump_dir = os.path.join(self.dump_dir, "wavs")
@@ -206,20 +206,20 @@ class DataPreprocessor:
     def run(self) -> None:
         self._filter_and_format_data()
 
-        if type(self.validation_split) == int: # count of validation samples
-            validation_samples_count = self.validation_split
-        else: # fraction of validation samples
-            validation_samples_count = int(self.validation_split * len(self.formatted_data))
-        if validation_samples_count > len(self.formatted_data) * 0.5:
-            print(f"validation_samples_count ({validation_samples_count}) is more than 50% of formatted_data ({len(self.formatted_data)})")
-            validation_samples_count = int(len(self.formatted_data) * 0.5)
-            print(f"capping validation_samples_count to {validation_samples_count}")
+        if type(self.eval_split) == int: # count of eval samples
+            eval_samples_count = self.eval_split
+        else: # fraction of eval samples
+            eval_samples_count = int(self.eval_split * len(self.formatted_data))
+        if eval_samples_count > len(self.formatted_data) * 0.5:
+            print(f"eval_samples_count ({eval_samples_count}) is more than 50% of formatted_data ({len(self.formatted_data)})")
+            eval_samples_count = int(len(self.formatted_data) * 0.5)
+            print(f"capping eval_samples_count to {eval_samples_count}")
 
-        # splitting all indices into train and validation indices
+        # splitting all indices into train and eval indices
         all_indices = set(range(len(self.formatted_data)))
-        validation_indices = set(random.sample(all_indices, k = validation_samples_count))
-        train_indices = all_indices - validation_indices
-        print(f"split data ({len(all_indices)}) into train ({len(train_indices)}) and validation ({len(validation_indices)})")
+        eval_indices = set(random.sample(all_indices, k = eval_samples_count))
+        train_indices = all_indices - eval_indices
+        print(f"split data ({len(all_indices)}) into train ({len(train_indices)}) and eval ({len(eval_indices)})")
 
         # writing total data to dump dir
         with open(os.path.join(self.dump_dir, "data.csv"), 'w') as f:
@@ -229,7 +229,7 @@ class DataPreprocessor:
         with open(os.path.join(self.dump_dir, "data_train.csv"), 'w') as f:
             for index in train_indices:
                 f.write(self.formatted_data[index])
-        # writing validation data to dump dir
-        with open(os.path.join(self.dump_dir, "data_validation.csv"), 'w') as f:
-            for index in validation_indices:
+        # writing eval data to dump dir
+        with open(os.path.join(self.dump_dir, "data_eval.csv"), 'w') as f:
+            for index in eval_indices:
                 f.write(self.formatted_data[index])

@@ -13,17 +13,11 @@ def check_argument(name: str, value: Union[float, int], min_val: Optional[Union[
         assert (value >= min_val and value <= max_val), f"The value \'{name}\' ({value}) is not in the required range ({min_val} -> {max_val})."
 
 class BaseConfig:
-    def __str__(self, level: int = 0) -> str:
-        prefix_main = (("├── " + "    " * (level - 1)) if level > 0 else "")
-        prefix = (("│   " + "    " * (level - 1)) if level > 0 else "")
-        rstr = prefix_main + self.__class__.__name__ + "\n"
+    def __str__(self) -> str:
+        rstr = self.__class__.__name__ + "\n"
         for ind, (key, value) in enumerate(self.__dict__.items()):
-            if (isinstance(value, BaseConfig)):
-                svalue = "\n" + BaseConfig.__str__(value, level=level + 1)
-            else:
-                svalue = "(" + str(value) + ")"
             prefix_value = ("└── " if ind == len(self.__dict__) - 1 else "├── ")
-            rstr += prefix + prefix_value + key.ljust(35) + svalue + "\n"
+            rstr += prefix_value + key.ljust(35) + "(" + str(value) + ")\n"
         return rstr.rstrip()
     
     def __repr__(self) -> str:
@@ -45,29 +39,23 @@ class BaseConfig:
         for config_name, config in configs.items():
             if config != None:
                 config_dict[config_name] = BaseConfig._get_dict_from_config(config=config)
-                config_dict[config_name]["CONFIG_TYPE"] = config.__class__.__name__
         if (config_ext == "json"):
             dump_json(path, config_dict)
         elif (config_ext == "yaml"):
             dump_yaml(path, config_dict)
 
     @staticmethod
-    def load_configs_from_file(path: str) -> Dict[str, BaseConfig]:
+    def load_configs_from_file(path: str, config_map: Dict[str, BaseConfig]) -> Dict[str, BaseConfig]:
         config_ext = os.path.splitext(path)[1][1: ]
         assert config_ext in ["json", "yaml"], f"given config extension ({config_ext}) is invalid"
         if (config_ext == "json"):
             config_dict = load_json(path)
         elif (config_ext == "yaml"):
             config_dict = load_yaml(path)
-        CONFIG_MAP: Dict[str, BaseConfig] = {
-            'TextConfig': TextConfig,
-            'AudioConfig': AudioConfig
-        }
         configs = {}
         for config_name in config_dict:
-            config_type = config_dict[config_name]["CONFIG_TYPE"]
-            del config_dict[config_name]["CONFIG_TYPE"]
-            configs[config_name] = CONFIG_MAP[config_type](**config_dict[config_name])
+            if config_name in config_map:
+                configs[config_name] = config_map[config_name](**config_dict[config_name])
         return configs
 
 class TextConfig(BaseConfig):

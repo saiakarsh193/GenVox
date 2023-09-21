@@ -1,6 +1,7 @@
-# import os
 from utils.formatters import BaseDataset
 from configs import TextConfig, AudioConfig, TrainerConfig
+from configs.models import Tacotron2Config
+from models.tts import TTSModel
 from core.processors import DataPreprocessor
 from core.trainer import Trainer
 
@@ -38,51 +39,41 @@ audio_config = AudioConfig(
     ref_level_db=1.0
 )
 
-data_preprocessor = DataPreprocessor(
-    datasets=[dataset2],
-    # datasets=[dataset, dataset2],
-    text_config=text_config,
-    audio_config=audio_config,
-    validation_split=500,
-    dump_dir="dump"
-)
+# data_preprocessor = DataPreprocessor(
+#     datasets=[dataset2],
+#     # datasets=[dataset, dataset2],
+#     text_config=text_config,
+#     audio_config=audio_config,
+#     eval_split=500,
+#     dump_dir="dump"
+# )
 # data_preprocessor.run()
 
 trainer_config = TrainerConfig(
     project_name="dev_run_ada",
     experiment_id="run_10",
     notes="First Vocoder run",
-    wandb_logger=True,
-    batch_size=16,
-    validation_batch_size=16,
-    num_loader_workers=0,
-    run_validation=True,
     use_cuda=True,
     epochs=200,
-    max_best_models=5,
+    batch_size=16,
+    eval_batch_size=16,
+    num_loader_workers=0,
     iters_for_checkpoint=1000,
+    max_best_models=5,
+    # run_eval=True,
+    # use_wandb=True,
+    debug_run=True
+)
+
+tacotron2_config = Tacotron2Config()
+
+trainer = Trainer(
+    model=TTSModel(),
+    trainer_config=trainer_config,
+    text_config=text_config,
+    audio_config=audio_config,
     dump_dir="dump",
     exp_dir="exp"
 )
 
-# # melgan_config = MelGANConfig()
-# tacotron2_config = Tacotron2Config()
-
-# optimizer_config = OptimizerConfig(
-#     learning_rate=0.0001,
-#     beta1=0.5,
-#     beta2=0.9,
-#     weight_decay=0
-# )
-
-# trainer = Trainer(
-#     trainer_config=trainer_config,
-#     model_config=melgan_config,
-#     # model_config=tacotron2_config,
-#     optimizer_config=optimizer_config,
-#     audio_config=audio_config,
-#     # text_config=text_config,
-#     # dataset_config=dataset_config
-# )
-
-# trainer.train()
+trainer.run()

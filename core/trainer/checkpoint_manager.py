@@ -1,51 +1,57 @@
+import os
+import torch
+from typing import Union, List, Dict, Any
+
+from models import BaseModel
+from utils import dump_json, load_json
+
 class CheckpointManager:
-    def __init__(self, exp_dir, max_best_models, save_optimizer_dict, task):
+    def __init__(
+            self, 
+            exp_dir: str = "exp",
+            max_best_models: int = 3,
+            save_optimizer_dict: bool = False,
+        ) -> None:
         self.exp_dir = exp_dir
         self.max_best_models = max_best_models
         self.save_optimizer_dict = save_optimizer_dict
-        self.task = task
-        assert os.path.isdir(self.exp_dir), f"experiments ({self.exp_dir}) directory does not exist"
         self.manager_path = os.path.join(self.exp_dir, "checkpoint_manager.json")
         if not os.path.isfile(self.manager_path):
             dump_json(self.manager_path, [])
+        # [
+        #     {
+        #         "priority_value": <how_important_is_this_model>,
+        #         "model_path": <path_to_torch_pt_model>
+        #     }
+        # ]
 
-    def save_model(self, iteration, model, optimizer, loss_value):
-        # model: tts_model if task == TTS
-        #        (gen_model, disc_model) if task == VOC
-        # optimizer: tts_optim if task == TTS
-        #            (gen_optim, disc_optim) if task == VOC
-        # loss_value: lower the loss_value better the model
-        #
-        # [(checkpoint_iteration, loss_value)] (increasing order)
-        manager_data = load_json(self.manager_path)
-        add_at_index = len(manager_data)
-        for index in range(len(manager_data)):
-            if (loss_value < manager_data[index][1]):
-                add_at_index = index
+    def save_model(
+            self,
+            iteration: int,
+            model: BaseModel,
+            priority_value: Union[int, float]
+        ) -> None:
+        # load existing manager data and figure out where to add the current model
+        manager_data: List[Dict[str, Any]] = load_json(self.manager_path)
+        add_at_index = len(manager_data) # default -> end of list
+        for ind, checkpoint in enumerate(manager_data):
+            if (priority_value < checkpoint["priority_value"]):
+                add_at_index = ind
                 break
-        if (add_at_index == self.max_best_models): # if add_at_index is at last position and manager already has max models, then igno
+        # if add_at_index is at last position and that position is max value, then skip saving
+        if (add_at_index == self.max_best_models):
             return
-        checkpoint_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
-        manager_data.insert(add_at_index, (checkpoint_path, loss_value))
-        # for saving the torch model
-        if self.task == "TTS":
-            model_dict = {
-                'task': self.task,
-                'iteration': iteration,
-                'model_state_dict': model.state_dict(),
-                'optim_state_dict': optimizer.state_dict() if self.save_optimizer_dict else None,
-            }
-        else:
-            model_dict = {
-                'task': self.task,
-                'iteration': iteration,
-                'model_state_dict': (model[0].state_dict(), model[1].state_dict()),
-                'optim_state_dict': (optimizer[0].state_dict(), optimizer[1].state_dict()) if self.save_optimizer_dict else None,
-            }
-        torch.save(model_dict, checkpoint_path)
-        # removing the last checkpoint in the manager if more than max models
+        # get model data and save it
+        model_dict = model.get_checkpoint_statedicts(save_optimizer_dict=self.save_optimizer_dict)
+        model_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
+        manager_data.insert(add_at_index, {
+            "priority_value": priority_value,
+            "model_path": model_path
+        })
+        torch.save(model_dict, model_path)
+        # removing the last checkpoint in the manager if more than max value
         if (len(manager_data) > self.max_best_models):
-            model_removed_path = manager_data[-1][0]
-            manager_data = manager_data[: -1]
-            os.remove(model_removed_path)
+            removed_checkpoint = manager_data.pop()
+            os.remove(removed_checkpoint["model_path"])
+        # update the manager data
         dump_json(self.manager_path, manager_data)
