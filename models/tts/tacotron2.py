@@ -3,29 +3,20 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-from typing import List
+from typing import List, Dict
 
 from configs import BaseConfig, TextConfig, AudioConfig, TrainerConfig
 from configs.models import Tacotron2Config
-from models import BaseModel
+from models.tts import TTSModel
 from models.generic import LinearNorm, ConvNorm
-
-######################
-
-def to_gpu(x, use_cuda):
-    x = x.contiguous()
-
-    if torch.cuda.is_available() and use_cuda:
-        x = x.cuda(non_blocking=True)
-    return torch.autograd.Variable(x)
 
 def get_mask_from_lengths(lengths, use_cuda):
     max_len = torch.max(lengths).item()
-    if torch.cuda.is_available() and use_cuda:
+    if use_cuda:
         ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
     else:
         ids = torch.arange(0, max_len, out=torch.LongTensor(max_len))
-    mask = (ids < lengths.unsqueeze(1)).bool()
+    mask = ~(ids < lengths.unsqueeze(1)).bool()
     return mask
 
 class LocationLayer(nn.Module):
@@ -476,8 +467,7 @@ class Decoder(nn.Module):
         decoder_inputs = torch.cat((decoder_input, decoder_inputs), dim=0)
         decoder_inputs = self.prenet(decoder_inputs)
 
-        self.initialize_decoder_states(
-            memory, mask=~get_mask_from_lengths(memory_lengths, self.use_cuda))
+        self.initialize_decoder_states(memory, mask=get_mask_from_lengths(memory_lengths, self.use_cuda))
 
         mel_outputs, gate_outputs, alignments = [], [], []
         while len(mel_outputs) < decoder_inputs.size(0) - 1:
@@ -532,7 +522,7 @@ class Decoder(nn.Module):
         return mel_outputs, gate_outputs, alignments
 
 
-class Tacotron2(BaseModel):
+class Tacotron2(TTSModel):
     def __init__(self, model_config: Tacotron2Config, audio_config: AudioConfig, text_config: TextConfig, trainer_config: TrainerConfig) -> None:
         super().__init__(model_config, audio_config, text_config, trainer_config)
         self.model_config: Tacotron2Config = self.model_config # for typing hints
@@ -566,63 +556,46 @@ class Tacotron2(BaseModel):
             postnet_embedding_dim=self.model_config.postnet_embedding_dim,
             postnet_kernel_size=self.model_config.postnet_kernel_size
         )
-        self.to_gpu = lambda value: to_gpu(value, self.use_cuda)
 
-    def parse_batch(self, batch):
-        text_padded, input_lengths, mel_padded, gate_padded, output_lengths = batch
-        text_padded = self.to_gpu(text_padded).long()
-        input_lengths = self.to_gpu(input_lengths).long()
-        max_len = torch.max(input_lengths.data).item()
-        mel_padded = self.to_gpu(mel_padded).float()
-        gate_padded = self.to_gpu(gate_padded).float()
-        output_lengths = self.to_gpu(output_lengths).long()
+    def forward(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        token_lengths, mel_lengths = batch["token_lengths"].data, batch["mel_lengths"].data
 
-        return (
-            (text_padded, input_lengths, mel_padded, max_len, output_lengths),
-            (mel_padded, gate_padded))
+        embedded_inputs = self.embedding(batch["token_padded"]).transpose(1, 2)
+        encoder_outputs = self.encoder(embedded_inputs, token_lengths)
+        mel_outputs, gate_outputs, alignments = self.decoder(encoder_outputs, batch["mel_padded"], memory_lengths=token_lengths)
+        mel_outputs_postnet = self.postnet(mel_outputs)
+        mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-    def parse_output(self, outputs, output_lengths=None):
-        if self.model_config.mask_padding and output_lengths is not None:
-            mask = ~get_mask_from_lengths(output_lengths, self.use_cuda)
-            mask = mask.expand(self.audio_config.n_mels, mask.size(0), mask.size(1))
-            mask = mask.permute(1, 0, 2)
+        if self.model_config.mask_padding:
+            mask = get_mask_from_lengths(mel_lengths, self.use_cuda) # [B, max_mel_length]
+            mask = mask.expand(self.audio_config.n_mels, mask.size(0), mask.size(1)) # [n_mels, B, max_mel_length]
+            mask = mask.permute(1, 0, 2) # [B, n_mels, max_mel_length]
 
-            outputs[0].data.masked_fill_(mask, 0.0)
-            outputs[1].data.masked_fill_(mask, 0.0)
-            outputs[2].data.masked_fill_(mask[:, 0, :], 1e3)  # gate energies
-
+            mel_outputs.data.masked_fill_(mask, 0.0)
+            mel_outputs_postnet.data.masked_fill_(mask, 0.0)
+            gate_outputs.data.masked_fill_(mask[:, 0, :], 1e3)
+        
+        outputs = {
+            "mel_outputs": mel_outputs,
+            "mel_outputs_postnet": mel_outputs_postnet,
+            "gate_outputs": gate_outputs,
+            "alignments": alignments,
+        }
         return outputs
 
-    def forward(self, inputs):
-        text_inputs, text_lengths, mels, max_len, output_lengths = inputs
-        text_lengths, output_lengths = text_lengths.data, output_lengths.data
-
-        embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
-
-        encoder_outputs = self.encoder(embedded_inputs, text_lengths)
-
-        mel_outputs, gate_outputs, alignments = self.decoder(
-            encoder_outputs, mels, memory_lengths=text_lengths)
-
-        mel_outputs_postnet = self.postnet(mel_outputs)
-        mel_outputs_postnet = mel_outputs + mel_outputs_postnet
-
-        return self.parse_output(
-            [mel_outputs, mel_outputs_postnet, gate_outputs, alignments],
-            output_lengths)
-
-    def inference(self, inputs):
-        embedded_inputs = self.embedding(inputs).transpose(1, 2)
+    def inference(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        embedded_inputs = self.embedding(inputs["tokens"]).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
-        mel_outputs, gate_outputs, alignments = self.decoder.inference(
-            encoder_outputs)
-
+        mel_outputs, gate_outputs, alignments = self.decoder.inference(encoder_outputs)
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-        outputs = self.parse_output(
-            [mel_outputs, mel_outputs_postnet, gate_outputs, alignments])
-
+        outputs = {
+            "mel_outputs": mel_outputs,
+            "mel_outputs_postnet": mel_outputs_postnet,
+            "gate_outputs": gate_outputs,
+            "alignments": alignments,
+        }
         return outputs
 
 ######################

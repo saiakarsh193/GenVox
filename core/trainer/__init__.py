@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 from typing import Optional
 
-from utils import load_json, current_formatted_time, center_print, log_print, sec_to_formatted_time
+from utils import load_json, current_formatted_time, center_print, log_print, sec_to_formatted_time, print_parameter_count
 from configs import BaseConfig, TextConfig, AudioConfig, TrainerConfig
 from models import BaseModel
 from .checkpoint_manager import CheckpointManager
@@ -64,7 +64,7 @@ class Trainer:
         # setting device
         if (self.config.use_cuda):
             if not torch.cuda.is_available():
-                print("torch CUDA is not available, using CPU instead")
+                print("torch CUDA is not available. switching from GPU to CPU (will be relatively very slow)")
                 self.device = "cpu"
             else:
                 self.device = "cuda:0"
@@ -93,10 +93,6 @@ class Trainer:
                 epochs=self.config.epochs
             )
 
-    # prepare trainer
-    # checkpoint resuming
-    # wandb logging
-
     def _pre_run_setup(self):
         center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
         # setting all the seeds
@@ -105,6 +101,10 @@ class Trainer:
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
+        print(self.config)
+        print(self.model.model_config)
+
+        print("loading train dataloader")
         # setting dataloaders
         self.train_dataloader: DataLoader = self.model.get_train_dataloader(
             dump_dir=self.dump_dir,
@@ -112,6 +112,7 @@ class Trainer:
             batch_size=self.config.batch_size
         )
         if self.config.run_eval:
+            print("run_eval set as True. loading eval dataloader, preparing output log directory")
             self.eval_dataloader: DataLoader = self.model.get_eval_dataloader(
                 dump_dir=self.dump_dir,
                 num_loader_workers=self.config.num_loader_workers,
@@ -125,16 +126,23 @@ class Trainer:
         # loading checkpoint state_dict into model to resume training
         # if (self.config.checkpoint_path != None):
 
+        center_print(f"MODEL DETAILS", space_factor=0.1)
+        self.model.train()
+        print(self.model)
+        print_parameter_count(self.model)
+
         self.epoch_start = 0
         self.iteration_start = 0
 
-    def _eval_loop(self, iteration):
-        ...
+    def _eval_loop(self, iteration: int) -> float:
+        center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35)
+        return 0
 
     def _train_loop(self):
         # setting training variables
         avg_time_epoch = 0
         iteration = self.iteration_start
+        total_iterations = len(self.train_dataloader) * self.config.epochs
         start_train = time.time() # start time of training
 
         # training loop
@@ -147,9 +155,10 @@ class Trainer:
                 self.model.train_step(batch)
                 end_iter = time.time() # end time of iteration
                 iteration += 1
-                log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
 
-                if (iteration % self.config.iters_for_checkpoint == 0 or (iteration == self.iters_per_epoch * epoch)): # every iters_per_checkpoint or last iteration
+                log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
+
+                if (iteration % self.config.iters_for_checkpoint == 0 or (iteration == total_iterations)): # every iters_per_checkpoint or last iteration
                     # validation
                     priority_value = self._eval_loop(iteration)
                     # checkpoint saving
@@ -165,7 +174,6 @@ class Trainer:
             epoch_time = end_epoch - start_epoch
             # update the average epoch time (removed epoch start offset to get correct counts)
             avg_time_epoch = ((avg_time_epoch * (epoch - self.epoch_start)) + epoch_time) / ((epoch - self.epoch_start) + 1)
-
             log_print(f"epoch end (left: {self.config.epochs - epoch}) -> time_taken: {sec_to_formatted_time(epoch_time)}")
             log_print(f"average time per epoch: {sec_to_formatted_time(avg_time_epoch)}")
             log_print(f"time elapsed: {sec_to_formatted_time(end_epoch - start_train)}")
@@ -193,9 +201,10 @@ class Trainer:
         print(f"Epochs: {(self.config.epochs - self.epoch_start)} (start: {self.epoch_start})")
         print(f"Batch Size: {self.config.batch_size}")
         print(f"Iterations per epoch: {len(self.train_dataloader)}")
-        print(f"Total iterations: {len(self.train_dataloader) * (self.config.epochs - self.epoch_start)} (start: {self.iteration_start})")
+        print(f"Total iterations: {len(self.train_dataloader) * (self.config.epochs - self.epoch_start)} (start: {self.iteration_start}, end: {len(self.train_dataloader) * self.config.epochs})")
         if (self.config.checkpoint_path != None):
             print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration_start}")
+        print()
 
         self._train_loop()
         
