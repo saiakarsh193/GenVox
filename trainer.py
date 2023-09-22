@@ -2,7 +2,6 @@ import os
 import random
 import numpy as np
 from typing import Optional
-from typeguard import typechecked
 import torch
 import torch.utils.data
 import wandb
@@ -101,7 +100,6 @@ class Trainer:
     """
     Trainer class for the data loading and training stage, along with checkpointing and logging
     """
-    @typechecked
     def __init__(
         self,
         trainer_config: TrainerConfig,

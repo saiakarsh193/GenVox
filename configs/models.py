@@ -7,8 +7,6 @@ class Tacotron2Config(BaseConfig):
     """
     def __init__(
         self,
-        symbols: Optional[Dict] = None,
-        n_symbols: Optional[int] = None,
         symbols_embedding_dim: int = 512,
         encoder_kernel_size: int = 5,
         encoder_n_convolutions: int = 3,
@@ -34,8 +32,6 @@ class Tacotron2Config(BaseConfig):
         beta2: float = 0.999
     ):
         # input params
-        self.symbols = symbols
-        self.n_symbols = n_symbols
         self.symbols_embedding_dim = symbols_embedding_dim
         # encoder params
         self.encoder_kernel_size = encoder_kernel_size

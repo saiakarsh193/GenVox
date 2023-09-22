@@ -11,7 +11,7 @@ class CheckpointManager:
             exp_dir: str = "exp",
             max_best_models: int = 3,
             save_optimizer_dict: bool = False,
-        ) -> None:
+        ):
         self.exp_dir = exp_dir
         self.max_best_models = max_best_models
         self.save_optimizer_dict = save_optimizer_dict

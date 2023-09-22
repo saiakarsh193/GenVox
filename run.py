@@ -66,9 +66,15 @@ trainer_config = TrainerConfig(
 )
 
 tacotron2_config = Tacotron2Config()
+tacotron2 = TTSModel(
+    model_config=tacotron2_config,
+    audio_config=audio_config,
+    text_config=text_config,
+    trainer_config=trainer_config
+)
 
 trainer = Trainer(
-    model=TTSModel(),
+    model=tacotron2,
     trainer_config=trainer_config,
     text_config=text_config,
     audio_config=audio_config,

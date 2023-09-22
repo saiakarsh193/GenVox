@@ -50,7 +50,7 @@ class TextProcessor:
     """
     TextProcessor is used to process text and convert it into tokens, and also provides other helper methods.
     """
-    def __init__(self, config: TextConfig) -> None:
+    def __init__(self, config: TextConfig):
         self.config = config
         self.cleaner_map: Dict[str, Callable[[str], str]] = {
             "base_cleaners": lambda text: base_cleaners(text, self.config.language)
@@ -75,6 +75,7 @@ class TextProcessor:
     def generate_token_map(self) -> Dict[str, int]:
         self.token_map = {sym: ind for ind, sym in enumerate(sorted(self.all_unique_tokens))}
         self.config.token_map = self.token_map
+        self.config.n_tokens = len(self.token_map)
         return self.token_map
     
     def tokens_to_indices(self, tokens: List[str]) -> List[int]:
@@ -87,7 +88,7 @@ class AudioProcessor:
     """
     AudioProcessor is used to process audio and convert it into required features, and also provides other helper methods.
     """
-    def __init__(self, config: AudioConfig) -> None:
+    def __init__(self, config: AudioConfig):
         self.config = config
         self.mel_basis = get_mel_filter(fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)
 
@@ -121,7 +122,7 @@ class DataPreprocessor:
             audio_config: AudioConfig,
             eval_split: Union[int, float] = 0.1,
             dump_dir: str = "dump",
-        ) -> None:
+        ):
         self.data: List[Dict] = []
         for dataset in datasets:
             self.data += dataset.data

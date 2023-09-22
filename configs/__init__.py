@@ -75,12 +75,14 @@ class TextConfig(BaseConfig):
         language: str = "english",
         cleaners: Optional[List[_CLEANER_TYPES]] = None,
         use_g2p: bool = False,
-        token_map: Optional[Dict[str, int]] = None
+        token_map: Optional[Dict[str, int]] = None,
+        n_tokens: Optional[int] = None
     ):
         self.language = language.lower()
         self.cleaners = cleaners
         self.use_g2p = use_g2p
         self.token_map = token_map
+        self.n_tokens = n_tokens
 
 _LOG_TYPE = Literal[
     "np.log",

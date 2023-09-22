@@ -1,16 +1,23 @@
+import wandb
+
 class WandbLogger:
-    def __init__(self, trainer):
+    def __init__(
+        self,
+        project_name: str,
+        experiment_id: str,
+        notes: str,
+        model_name: str,
+        seed: int,
+        epochs: int,
+    ):
         wandb.init(
-            project=trainer.config.project_name,
-            name=trainer.config.experiment_id,
-            notes=trainer.config.notes,
+            project=project_name,
+            name=experiment_id,
+            notes=notes,
             config={
-                "architecture": trainer.model_config.model_name,
-                "task": trainer.model_config.task,
-                "epochs": trainer.config.epochs,
-                "batch_size": trainer.config.batch_size,
-                "seed": trainer.config.seed,
-                "device": trainer.device
+                "model": model_name,
+                "seed": seed,
+                "epochs": epochs,
             }
         )
 

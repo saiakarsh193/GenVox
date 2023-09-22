@@ -1,12 +1,16 @@
 import os
+import time
+import random
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from typing import Optional
 
-from utils import load_json
+from utils import load_json, current_formatted_time, center_print, log_print, sec_to_formatted_time
 from configs import BaseConfig, TextConfig, AudioConfig, TrainerConfig
 from models import BaseModel
 from .checkpoint_manager import CheckpointManager
+from .wandb_logger import WandbLogger
 
 class Trainer:
     """
@@ -20,19 +24,20 @@ class Trainer:
             audio_config: Optional[AudioConfig] = None,
             dump_dir: str = "dump",
             exp_dir: str = "exp"
-        ) -> None:
+        ):
         self.model = model
         self.config = trainer_config
-        self.audio_config = audio_config
         self.text_config = text_config
-
+        self.audio_config = audio_config
         self.dump_dir = dump_dir
         self.exp_dir = exp_dir
 
         # loading token_map
         if self.text_config != None:
             if self.text_config.token_map == None:
+                print("loading token_list into text_config")
                 self.text_config.token_map = load_json(os.path.join(self.dump_dir, "token_list.json"))
+                self.text_config.n_tokens = len(self.text_config.token_map)
 
         # checking for exp directory (depending on whether we are resuming training or not)
         if (self.config.checkpoint_path != None):
@@ -52,7 +57,7 @@ class Trainer:
                 "trainer_config": self.config,
                 "text_config": self.text_config,
                 "audio_config": self.audio_config,
-                # "model_config": self.model_config,
+                "model_config": self.model.model_config,
             }
         )
 
@@ -69,23 +74,8 @@ class Trainer:
         # setting flags correctly
         if self.config.debug_run:
             self.config.run_eval = False
+        if not self.config.run_eval:
             self.config.use_wandb = False
-
-        # setting dataloaders
-        self.train_dataloader: DataLoader = model.get_train_dataloader(
-            dump_dir=self.dump_dir,
-            num_loader_workers=self.config.num_loader_workers,
-            batch_size=self.config.batch_size
-        )
-        if self.config.run_eval:
-            self.eval_dataloader: DataLoader = model.get_eval_dataloader(
-                dump_dir=self.dump_dir,
-                num_loader_workers=self.config.num_loader_workers,
-                batch_size=self.config.eval_batch_size
-            )
-            self.eval_outdir = os.path.join(self.exp_dir, "eval_outputs")
-            if not os.path.isdir(self.eval_outdir):
-                os.mkdir(self.eval_outdir)
 
         # setting up helper classes
         self.checkpoint_manager = CheckpointManager(
@@ -93,8 +83,122 @@ class Trainer:
             max_best_models=self.config.max_best_models,
             save_optimizer_dict=self.config.save_optimizer_dict
         )
-        # if (self.config.wandb_logger):
-        #     self.wandb = WandbLogger(self)
+        if (self.config.use_wandb):
+            self.wandb = WandbLogger(
+                project_name=self.config.project_name,
+                experiment_id=self.config.experiment_id,
+                notes=self.config.notes,
+                model_name=self.model.model_name,
+                seed=self.config.seed,
+                epochs=self.config.epochs
+            )
+
+    # prepare trainer
+    # checkpoint resuming
+    # wandb logging
+
+    def _pre_run_setup(self):
+        center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
+        # setting all the seeds
+        random.seed(self.config.seed)
+        np.random.seed(self.config.seed)
+        torch.manual_seed(self.config.seed)
+        torch.cuda.manual_seed(self.config.seed)
+
+        # setting dataloaders
+        self.train_dataloader: DataLoader = self.model.get_train_dataloader(
+            dump_dir=self.dump_dir,
+            num_loader_workers=self.config.num_loader_workers,
+            batch_size=self.config.batch_size
+        )
+        if self.config.run_eval:
+            self.eval_dataloader: DataLoader = self.model.get_eval_dataloader(
+                dump_dir=self.dump_dir,
+                num_loader_workers=self.config.num_loader_workers,
+                batch_size=self.config.eval_batch_size
+            )
+            # setup directory to store eval outputs
+            self.eval_outdir = os.path.join(self.exp_dir, "eval_outputs")
+            if not os.path.isdir(self.eval_outdir):
+                os.mkdir(self.eval_outdir)
+
+        # loading checkpoint state_dict into model to resume training
+        # if (self.config.checkpoint_path != None):
+
+        self.epoch_start = 0
+        self.iteration_start = 0
+
+    def _eval_loop(self, iteration):
+        ...
+
+    def _train_loop(self):
+        # setting training variables
+        avg_time_epoch = 0
+        iteration = self.iteration_start
+        start_train = time.time() # start time of training
+
+        # training loop
+        for epoch in range(self.epoch_start, self.config.epochs):
+            start_epoch = time.time() # start time of epoch
+            log_print(f"epoch start: {epoch + 1} / {self.config.epochs}")
+            for ind, batch in enumerate(self.train_dataloader):
+                start_iter = time.time() # start time of iteration
+                batch = self.model.prepare_batch(batch)
+                self.model.train_step(batch)
+                end_iter = time.time() # end time of iteration
+                iteration += 1
+                log_print(f"({epoch + 1} :: {ind + 1} / {self.iters_per_epoch}) -> iteration: {iteration}, loss: {loss_value: .3f}, grad_norm: {grad_norm: .3f}, time_taken: {end_iter - start_iter: .2f} s")
+
+                if (iteration % self.config.iters_for_checkpoint == 0 or (iteration == self.iters_per_epoch * epoch)): # every iters_per_checkpoint or last iteration
+                    # validation
+                    priority_value = self._eval_loop(iteration)
+                    # checkpoint saving
+                    self.checkpoint_manager.save_model(
+                        iteration=iteration, 
+                        model=self.model,
+                        priority_value=priority_value
+                    )
+                # logging to wandb
+                if (self.config.use_wandb):
+                    self.wandb.log(self.model.get_train_step_logs(), epoch=iteration, commit=True) 
+            end_epoch = time.time() # end time of epoch
+            epoch_time = end_epoch - start_epoch
+            # update the average epoch time (removed epoch start offset to get correct counts)
+            avg_time_epoch = ((avg_time_epoch * (epoch - self.epoch_start)) + epoch_time) / ((epoch - self.epoch_start) + 1)
+
+            log_print(f"epoch end (left: {self.config.epochs - epoch}) -> time_taken: {sec_to_formatted_time(epoch_time)}")
+            log_print(f"average time per epoch: {sec_to_formatted_time(avg_time_epoch)}")
+            log_print(f"time elapsed: {sec_to_formatted_time(end_epoch - start_train)}")
+            # calculate ETA: epochs left * avg time per epoch
+            remaining_time = (self.config.epochs - (epoch + 1)) * avg_time_epoch
+            log_print(f"estimated time remaining: {sec_to_formatted_time(remaining_time)}")
+            log_print(f"training ending at {current_formatted_time(sec_add=remaining_time)}")
+            print()
+
+        # training done
+        center_print(f"TRAINING END ({current_formatted_time()})", space_factor=0.35)
+        end_train = time.time() # end time of training
+        print(f"total time of training: {sec_to_formatted_time(end_train - start_train)}")
 
     def run(self):
-        ...
+        self._pre_run_setup()
+
+        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
+        print()
+        print(f"Model: {self.model.model_name}")
+        print(f"Project: {self.config.project_name}")
+        print(f"Experiment: {self.config.experiment_id}")
+        print(f"Seed: {self.config.seed}")
+        print(f"Device: {self.device}")
+        print(f"Epochs: {(self.config.epochs - self.epoch_start)} (start: {self.epoch_start})")
+        print(f"Batch Size: {self.config.batch_size}")
+        print(f"Iterations per epoch: {len(self.train_dataloader)}")
+        print(f"Total iterations: {len(self.train_dataloader) * (self.config.epochs - self.epoch_start)} (start: {self.iteration_start})")
+        if (self.config.checkpoint_path != None):
+            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration_start}")
+
+        self._train_loop()
+        
+        # stop wandb syncing
+        if (self.config.use_wandb):
+            self.wandb.finish()

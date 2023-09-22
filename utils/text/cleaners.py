@@ -55,7 +55,7 @@ _CLEANER_TYPES = Literal[
     "base_cleaners"
 ]
 
-def base_cleaners(text: str, language: str = "english", remove_numbers: bool = False):
+def base_cleaners(text: str, language: str = "english", remove_numbers: bool = False) -> str:
     text = lowercase(text)
     if remove_numbers:
         text = remove_numbers(text)
