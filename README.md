@@ -1,71 +1,58 @@
+<!--<a href="https://github.com/saiakarsh193/GenVox"><img src="https://i.ibb.co/y5jqFFJ/genvox-logo1.png" alt="genvox-logo1" width="300"/></a>-->
+<a href="https://github.com/saiakarsh193/GenVox"><img src="https://i.ibb.co/nRyJBGk/genvox-logo2.png" alt="genvox-logo2" width="250"/></a>
+
 # GenVox
-Pipeline for building TTS
+GenVox is an end-to-end Python-based neural speech synthesis toolkit that provides both Text-to-Speech (TTS) and Vocoder models. GenVox uses [Pytorch](http://pytorch.org/) for its neural backend. GenVox coding style is heavily inspired by [Coqui-AI](https://github.com/coqui-ai/TTS), and the data flow is inspired by [ESPNET](https://github.com/espnet/espnet). The model architecture codes were taken from various places but heavily modified for better readability, quality and optimization. Read [devlog](dev_log.md) for more details regarding the development.  
 
-Supported Text2Mel:
-- Tacotron2 - [paper](https://arxiv.org/pdf/1712.05884.pdf)
+🥣 Recipes for training your model from scratch with [WandB](https://wandb.ai/) support for logging.  
+⚒ Tools for creating and processing datasets, and data analysis.  
+⏱ Codes for optimized audio and text processing, logging, and pipelines for server-specific optimization.  
+🔥 Designed to add your own custom architectures.  
 
-Supported Vocoder:
+Supported TTS (Text2Mel):
+- Tacotron2 - [paper](https://arxiv.org/pdf/1712.05884.pdf) - [original repo](https://github.com/NVIDIA/tacotron2)
+
+Supported Vocoders:
 - MelGAN - [paper](https://arxiv.org/pdf/1910.06711.pdf)
 
-## Usage
-
-### Set up the repo (dev branch)
+## 📖 Installation
+Clone the [repo](https://github.com/saiakarsh193/GenVox) using any one of the methods
 ```bash
-# recommended method to clone repo and track branch
+# recommended method
 git clone https://github.com/saiakarsh193/GenVox
-# will automatically track to upstream remote dev
 git checkout dev
 
-# you can also clone using these methods
-# 1. to set dev as the local branch but still track other branches.
 git clone -b dev https://github.com/saiakarsh193/GenVox
-# 2. to only clone dev branch
+
 git clone -b dev --single-branch https://github.com/saiakarsh193/GenVox
 
-# to check everything is correctly tracked
-git remote show origin
-
-# enter the repo
-cd GenVox
+git remote show origin # to check everything is correctly tracked
 ```
 
-### Set up the env
+**NOTE**: If running on ADA cluster
 ```bash
-# NOTE: if running on ADA
-# go to interactive shell (to prevent out of memory issue)
-sinteractive -c 8 -g 1 .
-# and then load cuda, ffmpeg modules
+sinteractive -c 8 -g 1 # to prevent out of memory issue
 module load u18/cuda/10.2
 module load u18/ffmpeg/5.0.1
+```
 
-
+Setting up the environment
+```bash
 # create environment with python 3.8 (as it is tested and working) and activate it
 conda create --name genvox python=3.8
 conda activate genvox
 # or
-conda create --prefix ./ttsenv python=3.8
-conda activate ./ttsenv
+conda create --prefix ./genvox python=3.8
+conda activate ./genvox
 
-# install dependencies
-pip install -r requirements.txt
-# or
-./ttsenv/bin/python3 -m pip install -r requirements.txt
+pip install -r requirements.txt # to install the dependencies
 ```
 
-### Set up the data and run the code
+## 🚀 Training your model
 ```bash
-# create data directory
-mkdir data
-# move/download the dataset into data directory and then edit run.py accordingly
+# to use wandb for logging, you need to login (only once)
+wandb login # then type your API key (you can find your API key in your browser at https://wandb.ai/authorize)
 
-# for using wandb for logging, you need to first login (if not already done)
-wandb login
-# then type your API key (you can find your API key in your browser at https://wandb.ai/authorize)
-
-# once everything is all setup, you can run the code
+# after all the hard work, you can finally run the code
 python3 run.py
 ```
-
-## Development
-Read [devlog](dev_log.md) for more details.  
-Inspired by [NVIDIA](https://github.com/NVIDIA/tacotron2), [Coqui-AI](https://github.com/coqui-ai/TTS), [ESPNET](https://github.com/espnet/espnet).
