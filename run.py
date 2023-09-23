@@ -8,13 +8,7 @@ from core.trainer import Trainer
 dataset = BaseDataset(
     dataset_path="data/LJSpeech_test",
     formatter="ljspeech",
-    dataset_name="u1"
-)
-
-dataset2 = BaseDataset(
-    dataset_path="data/LJSpeech_small",
-    formatter="ljspeech",
-    dataset_name="u2"
+    dataset_name="ljspeech"
 )
 
 text_config = TextConfig(
@@ -40,29 +34,28 @@ audio_config = AudioConfig(
 )
 
 data_preprocessor = DataPreprocessor(
-    datasets=[dataset2],
-    # datasets=[dataset, dataset2],
+    datasets=[dataset],
     text_config=text_config,
     audio_config=audio_config,
     eval_split=500,
     dump_dir="dump"
 )
-# data_preprocessor.run()
+data_preprocessor.run()
 
 trainer_config = TrainerConfig(
-    project_name="dev_run_ada",
-    experiment_id="run_10",
-    notes="First Vocoder run",
+    project_name="genvox_revamp",
+    experiment_id="exp_1",
+    notes="First Revamp run",
     use_cuda=True,
-    epochs=5,
-    batch_size=16,
+    epochs=20,
+    batch_size=64,
     eval_batch_size=16,
     num_loader_workers=0,
     iters_for_checkpoint=1000,
     max_best_models=5,
-    # run_eval=True,
-    # use_wandb=True,
-    debug_run=True
+    run_eval=False,
+    use_wandb=True,
+    # debug_run=True
 )
 
 tacotron2 = Tacotron2(

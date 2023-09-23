@@ -45,7 +45,6 @@ class Trainer:
         # setting flags correctly
         if self.config.debug_run:
             self.config.run_eval = False
-        if not self.config.run_eval:
             self.config.use_wandb = False
 
     def _pre_run_setup(self):
@@ -79,11 +78,6 @@ class Trainer:
             }
         )
 
-        # printing configs
-        if not self.config.debug_run:
-            print(self.config)
-            print(self.model.model_config)
-
         # setting up helper classes
         if self.config.run_eval:
             self.checkpoint_manager = CheckpointManager(
@@ -100,6 +94,11 @@ class Trainer:
                 seed=self.config.seed,
                 epochs=self.config.epochs
             )
+
+        # printing configs
+        if not self.config.debug_run:
+            print(self.config)
+            print(self.model.model_config)
 
         # setting all the seeds
         random.seed(self.config.seed)
