@@ -9,7 +9,6 @@ from models import BaseModel, _DATASET_SPLIT_TYPE
 
 class TextMelDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_split_type: _DATASET_SPLIT_TYPE = "train", dump_dir: str = "dump"):
-        assert os.path.isdir(dump_dir), f"dump ({dump_dir}) directory does not exist"
         dataset_path = os.path.join(dump_dir, f"data_{dataset_split_type}.csv")
         with open(dataset_path) as f:
             self.raw_data = f.readlines()
@@ -93,5 +92,6 @@ class TTSModel(BaseModel):
     
     def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         for key, val in batch.items():
+            # NOTE: might need to do val.contiguous()
             batch[key] = val.to(device=self.device)
         return batch

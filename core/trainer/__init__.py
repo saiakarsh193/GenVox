@@ -51,14 +51,19 @@ class Trainer:
     def _pre_run_setup(self):
         center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
 
-        # checking for exp directory (depending on whether we are resuming training or not)
+        if self.config.debug_run:
+            print("debug_run set to True, skipping unnecessary prints, asserts")
+
+        # checking for exp directory (depending on whether we are resuming training or not, and debug_run is True or not)
         if (self.config.checkpoint_path != None):
             print(f"overriding exp_dir ({self.exp_dir}) with checkpoint_path ({self.config.checkpoint_path}) to resume training")
             self.exp_dir = self.config.checkpoint_path
             assert os.path.isdir(self.exp_dir), f"checkpoint_path ({self.exp_dir}) does not exist"
         else:
-            assert not os.path.isdir(self.exp_dir), f"exp_dir ({self.exp_dir}) already exists"
-            os.mkdir(self.exp_dir)
+            if not self.config.debug_run: # if debug_run, dont do assert
+                assert not os.path.isdir(self.exp_dir), f"exp_dir ({self.exp_dir}) already exists"
+            if not os.path.isdir(self.exp_dir): # create exp_dir if not already there
+                os.mkdir(self.exp_dir)
 
         # write all the configs
         # NOTE: only if no checkpoint path, else load it from there?
@@ -73,16 +78,20 @@ class Trainer:
                 "model_config": self.model.model_config,
             }
         )
-        print(self.config)
-        print(self.model.model_config)
+
+        # printing configs
+        if not self.config.debug_run:
+            print(self.config)
+            print(self.model.model_config)
 
         # setting up helper classes
-        self.checkpoint_manager = CheckpointManager(
-            exp_dir=self.exp_dir,
-            max_best_models=self.config.max_best_models,
-            save_optimizer_dict=self.config.save_optimizer_dict
-        )
-        if (self.config.use_wandb):
+        if self.config.run_eval:
+            self.checkpoint_manager = CheckpointManager(
+                exp_dir=self.exp_dir,
+                max_best_models=self.config.max_best_models,
+                save_optimizer_dict=self.config.save_optimizer_dict
+            )
+        if self.config.use_wandb:
             self.wandb_logger = WandbLogger(
                 project_name=self.config.project_name,
                 experiment_id=self.config.experiment_id,
@@ -97,6 +106,10 @@ class Trainer:
         np.random.seed(self.config.seed)
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
+
+        # setting criterion and optimizers
+        self.criterion = self.model.get_criterion()
+        self.optimizer = self.model.get_optimizer()
 
         # data loading and outdir prep
         print("loading train dataloader")
@@ -120,10 +133,11 @@ class Trainer:
         # loading checkpoint state_dict into model to resume training
         # if (self.config.checkpoint_path != None):
 
-        center_print(f"MODEL DETAILS", space_factor=0.1)
-        self.model.train()
-        print(self.model)
-        print_parameter_count(self.model)
+        if not self.config.debug_run: # print model details only when NOT in debug_run
+            center_print(f"MODEL DETAILS", space_factor=0.1)
+            self.model.train()
+            print(self.model)
+            print_parameter_count(self.model)
 
         self.epoch_start = 0
         self.iteration_start = 0
@@ -146,24 +160,28 @@ class Trainer:
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
                 batch = self.model.prepare_batch(batch)
-                self.model.train_step(batch)
+                self.model.train_step(
+                    batch=batch,
+                    criterion=self.criterion,
+                    optimizer=self.optimizer
+                )
                 end_iter = time.time() # end time of iteration
                 iteration += 1
-
                 log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
 
-                if (iteration % self.config.iters_for_checkpoint == 0 or (iteration == total_iterations)): # every iters_per_checkpoint or last iteration
-                    # validation
+                # evaluation and checkpoint saving
+                if (self.config.run_eval and (iteration % self.config.iters_for_checkpoint == 0 or (iteration == total_iterations))): # every iters_per_checkpoint or last iteration
                     priority_value = self._eval_loop(iteration)
-                    # checkpoint saving
                     self.checkpoint_manager.save_model(
                         iteration=iteration, 
                         model=self.model,
                         priority_value=priority_value
                     )
+
                 # logging to wandb
                 if (self.config.use_wandb):
-                    self.wandb_logger.log(self.model.get_train_step_logs(), epoch=iteration, commit=True) 
+                    self.wandb_logger.log(self.model.get_train_step_logs(), epoch=iteration, commit=True)
+
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             # update the average epoch time (removed epoch start offset to get correct counts)
