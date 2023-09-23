@@ -1,5 +1,7 @@
+<div align="center">
 <!--<a href="https://github.com/saiakarsh193/GenVox"><img src="https://i.ibb.co/y5jqFFJ/genvox-logo1.png" alt="genvox-logo1" width="300"/></a>-->
 <a href="https://github.com/saiakarsh193/GenVox"><img src="https://i.ibb.co/nRyJBGk/genvox-logo2.png" alt="genvox-logo2" width="250"/></a>
+</div>
 
 # GenVox
 GenVox is an end-to-end Python-based neural speech synthesis toolkit that provides both Text-to-Speech (TTS) and Vocoder models. GenVox uses [Pytorch](http://pytorch.org/) for its neural backend. GenVox coding style is heavily inspired by [Coqui-AI](https://github.com/coqui-ai/TTS), and the data flow is inspired by [ESPNET](https://github.com/espnet/espnet). The model architecture codes were taken from various places but heavily modified for better readability, quality and optimization. Read [devlog](dev_log.md) for more details regarding the development.  
