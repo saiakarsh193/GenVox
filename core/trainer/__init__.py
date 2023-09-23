@@ -32,35 +32,6 @@ class Trainer:
         self.dump_dir = dump_dir
         self.exp_dir = exp_dir
 
-        # loading token_map
-        if self.text_config != None:
-            if self.text_config.token_map == None:
-                print("loading token_list into text_config")
-                self.text_config.token_map = load_json(os.path.join(self.dump_dir, "token_list.json"))
-                self.text_config.n_tokens = len(self.text_config.token_map)
-
-        # checking for exp directory (depending on whether we are resuming training or not)
-        if (self.config.checkpoint_path != None):
-            print(f"overriding exp_dir ({self.exp_dir}) with checkpoint_path ({self.config.checkpoint_path}) to resume training")
-            self.exp_dir = self.config.checkpoint_path
-            assert os.path.isdir(self.exp_dir), f"checkpoint_path ({self.exp_dir}) does not exist"
-        else:
-            assert not os.path.isdir(self.exp_dir), f"exp_dir ({self.exp_dir}) already exists"
-            os.mkdir(self.exp_dir)
-
-        # write all the configs
-        # NOTE: only if no checkpoint path, else load it from there?
-        self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
-        BaseConfig.write_configs_to_file(
-            path=self.config_yaml_path,
-            configs={
-                "trainer_config": self.config,
-                "text_config": self.text_config,
-                "audio_config": self.audio_config,
-                "model_config": self.model.model_config,
-            }
-        )
-
         # setting device
         if (self.config.use_cuda):
             if not torch.cuda.is_available():
@@ -77,6 +48,34 @@ class Trainer:
         if not self.config.run_eval:
             self.config.use_wandb = False
 
+    def _pre_run_setup(self):
+        center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
+
+        # checking for exp directory (depending on whether we are resuming training or not)
+        if (self.config.checkpoint_path != None):
+            print(f"overriding exp_dir ({self.exp_dir}) with checkpoint_path ({self.config.checkpoint_path}) to resume training")
+            self.exp_dir = self.config.checkpoint_path
+            assert os.path.isdir(self.exp_dir), f"checkpoint_path ({self.exp_dir}) does not exist"
+        else:
+            assert not os.path.isdir(self.exp_dir), f"exp_dir ({self.exp_dir}) already exists"
+            os.mkdir(self.exp_dir)
+
+        # write all the configs
+        # NOTE: only if no checkpoint path, else load it from there?
+        print(f"writing configs to {self.exp_dir} directory")
+        self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
+        BaseConfig.write_configs_to_file(
+            path=self.config_yaml_path,
+            configs={
+                "trainer_config": self.config,
+                "text_config": self.text_config,
+                "audio_config": self.audio_config,
+                "model_config": self.model.model_config,
+            }
+        )
+        print(self.config)
+        print(self.model.model_config)
+
         # setting up helper classes
         self.checkpoint_manager = CheckpointManager(
             exp_dir=self.exp_dir,
@@ -84,7 +83,7 @@ class Trainer:
             save_optimizer_dict=self.config.save_optimizer_dict
         )
         if (self.config.use_wandb):
-            self.wandb = WandbLogger(
+            self.wandb_logger = WandbLogger(
                 project_name=self.config.project_name,
                 experiment_id=self.config.experiment_id,
                 notes=self.config.notes,
@@ -93,19 +92,14 @@ class Trainer:
                 epochs=self.config.epochs
             )
 
-    def _pre_run_setup(self):
-        center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
         # setting all the seeds
         random.seed(self.config.seed)
         np.random.seed(self.config.seed)
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
-        print(self.config)
-        print(self.model.model_config)
-
+        # data loading and outdir prep
         print("loading train dataloader")
-        # setting dataloaders
         self.train_dataloader: DataLoader = self.model.get_train_dataloader(
             dump_dir=self.dump_dir,
             num_loader_workers=self.config.num_loader_workers,
@@ -169,7 +163,7 @@ class Trainer:
                     )
                 # logging to wandb
                 if (self.config.use_wandb):
-                    self.wandb.log(self.model.get_train_step_logs(), epoch=iteration, commit=True) 
+                    self.wandb_logger.log(self.model.get_train_step_logs(), epoch=iteration, commit=True) 
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
             # update the average epoch time (removed epoch start offset to get correct counts)
@@ -210,4 +204,4 @@ class Trainer:
         
         # stop wandb syncing
         if (self.config.use_wandb):
-            self.wandb.finish()
+            self.wandb_logger.finish()

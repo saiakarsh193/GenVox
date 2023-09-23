@@ -10,7 +10,7 @@ import g2p_en
 from typing import List, Dict, Callable, Set, Union
 
 from configs import TextConfig, AudioConfig
-from utils import get_non_silent_boundary, sec_to_formatted_time, dump_json
+from utils import get_non_silent_boundary, sec_to_formatted_time, dump_json, load_json
 # from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json, load_json, createDatasetFromYoutube
 from utils.formatters import BaseDataset
 from utils.text import base_cleaners
@@ -136,12 +136,12 @@ class DataPreprocessor:
         self.dump_dir = dump_dir
         self.wav_dump_dir = os.path.join(self.dump_dir, "wavs")
         self.feature_dump_dir = os.path.join(self.dump_dir, "feats")
-        assert not os.path.isdir(self.dump_dir), f"dump directory ({self.dump_dir}) already exists"
 
-        print(f"creating dump directories")
-        os.mkdir(self.dump_dir)
-        os.mkdir(self.wav_dump_dir)
-        os.mkdir(self.feature_dump_dir)
+        # loading token_map if dump dir is already there
+        if self.text_config.token_map == None and os.path.isdir(self.dump_dir):
+            print(f"loading token_list from {self.dump_dir} directory into text_config")
+            self.text_config.token_map = load_json(os.path.join(self.dump_dir, "token_list.json"))
+            self.text_config.n_tokens = len(self.text_config.token_map)
 
     def _filter_and_format_data(self) -> None:
         valid_data: List[Dict] = []
@@ -205,6 +205,12 @@ class DataPreprocessor:
             self.formatted_data.append(sample["unique_id"] + "|" + sample["audio_path"] + "|" + sample["feature_path"] + "|" + tokens_ind + "\n")
 
     def run(self) -> None:
+        assert not os.path.isdir(self.dump_dir), f"dump directory ({self.dump_dir}) already exists"
+        print(f"creating dump directories")
+        os.mkdir(self.dump_dir)
+        os.mkdir(self.wav_dump_dir)
+        os.mkdir(self.feature_dump_dir)
+
         self._filter_and_format_data()
 
         if type(self.eval_split) == int: # count of eval samples

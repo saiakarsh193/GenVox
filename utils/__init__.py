@@ -110,13 +110,13 @@ def current_formatted_time(sec_add: int = 0) -> str:
     dt_now = dt_now + datetime.timedelta(0, sec_add)
     return dt_now.strftime("%Y-%m-%d %H:%M:%S")
 
-def center_print(sentence: str, space_factor: float = 0.5) -> None:
+def center_print(sentence: str, space_factor: float = 0.5, fill_symbol: str = "=", fill_length: int = 100) -> None:
     """
     prints given string in the center
     """
-    pad_left = (100 - len(sentence))
+    pad_left = (fill_length - len(sentence))
     space_pad = len(sentence) + int(pad_left * space_factor)
-    sentence = sentence.center(space_pad, ' ').center(100, '=')
+    sentence = sentence.center(space_pad, ' ').center(fill_length, fill_symbol)
     print(sentence)
 
 def log_print(*args) -> None:
@@ -176,11 +176,9 @@ def print_parameter_count(model) -> None:
     print the number of parameters in a given torch model
     """
     counts = count_parameters(model)
-    preheading = ("-" * 10) + f" {model.__class__.__module__}.{model.__class__.__name__} (Parameters Count Summary) " + ("-" * 10)
-    postheading = ("-" * len(preheading))
     just_count = 10
-    print(preheading)
+    center_print(f" {model.__class__.__module__}.{model.__class__.__name__} (Parameters Count Summary) ", space_factor=0, fill_symbol="-")
     print("Trainable Parameters     : " + str(counts["trainable_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["trainable_parameters"]) + ")")
     print("Non-Trainable Parameters : " + str(counts["nontrainable_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["nontrainable_parameters"]) + ")")
     print("Total Parameters         : " + str(counts["total_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["total_parameters"]) + ")")
-    print(postheading)
+    center_print(f"", space_factor=0, fill_symbol="-")
