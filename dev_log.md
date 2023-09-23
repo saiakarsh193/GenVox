@@ -22,6 +22,13 @@
 - [18-04-23](#18-04-23)
 - [19-04-23](#19-04-23)
 - [23-04-23](#23-04-23)
+- [25-04-23](#25-04-23)
+- [26-04-23](#26-04-23)
+- [28-04-23](#28-04-23)
+- [02-05-23](#02-05-23)
+- [05-05-23](#05-05-23)
+- [22-05-23](#22-05-23)
+- [12-06-23](#12-06-23)
 
 
 ### 26-03-23
@@ -343,3 +350,10 @@
       weight_decay=0
     )
   ```
+
+### 12-06-23
+- *NOTE*: Dont use two package managers (`pip`, `conda`) while installing packages.
+  - If you installed `torch` with `pip` (`pip install torch`) and then install `accelerate` using `conda` (`conda install accelerate -c conda-forge`), then it will also install `pytorch` (mostly cpu version) and replace the already installed `torch` package.
+  - This is because `conda` is not aware of what `pip` installed and will do independantly, hence corrupting the environment.
+  - We can avoid this by using `pip` to install (`pip install accelerate`).
+- Using HuggingFace Accelerate Python package for distributed training ([huggingface](https://huggingface.co/docs/accelerate), [github](https://github.com/huggingface/accelerate)).

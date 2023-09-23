@@ -9,7 +9,7 @@ import wandb
 import time
 
 from config import TextConfig, AudioConfig, DatasetConfig, TrainerConfig, ModelConfig, Tacotron2Config, OptimizerConfig, write_configs
-from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time
+from utils import load_json, dump_json, sec_to_formatted_time, log_print, center_print, current_formatted_time, print_count_parameters
 from utils import saveplot_mel, saveplot_alignment, saveplot_gate, saveplot_signal
 import tts
 import vocoder
@@ -70,10 +70,9 @@ class CheckpointManager:
 
 class WandbLogger:
     def __init__(self, trainer):
-        wandb.login(key=trainer.config.wandb_auth_key)
         wandb.init(
             project=trainer.config.project_name,
-            name=f"exp_{trainer.config.experiment_id}",
+            name=trainer.config.experiment_id,
             notes=trainer.config.notes,
             config={
                 "architecture": trainer.model_config.model_name,
@@ -82,8 +81,7 @@ class WandbLogger:
                 "batch_size": trainer.config.batch_size,
                 "seed": trainer.config.seed,
                 "device": trainer.device
-            },
-            tags=["dev", "ljspeech"],
+            }
         )
 
     def define_metric(self, value, summary):
@@ -242,11 +240,14 @@ class Trainer:
         if self.task == "TTS":
             self.model.train()
             print(self.model)
+            print_count_parameters(self.model)
         else:
             self.model_generator.train()
             self.model_discriminator.train()
             print(self.model_generator)
             print(self.model_discriminator)
+            print_count_parameters(self.model_generator)
+            print_count_parameters(self.model_discriminator)
 
         # optimizing torch
         torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
@@ -369,7 +370,7 @@ class Trainer:
         print(f"Batch count: {self.iters_per_epoch}")
         print(f"Device: {self.device}")
         if (self.config.resume_from_checkpoint):
-            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration}")
+            print(f"Training resuming from checkpoint ({self.config.checkpoint_path}), epoch start: {self.epoch_start}, iteration start: {self.iteration_start}")
         
         # setting training variables
         start_train = time.time() # start time of training

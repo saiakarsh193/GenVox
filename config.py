@@ -235,8 +235,8 @@ class DatasetConfig(BaseConfig):
     @typechecked
     def __init__(
         self,
-        text_config: TextConfig,
-        audio_config: AudioConfig,
+        text_config: TextConfig = TextConfig(),
+        audio_config: AudioConfig = AudioConfig(),
         dataset_type: _DATASET_TYPE = "text",
         delimiter: str = " ",
         uid_index: int = 0,
@@ -303,8 +303,6 @@ class TrainerConfig(BaseConfig):
                 Default is ``False``.
         wandb_logger (bool): Whether to use wandb for logging. 
                 Default is ``True``.
-        wandb_auth_key (str): The authentication key for wandb. 
-                Default is an ``""``.
         resume_from_checkpoint (bool): Whether to resume training from a checkpoint. 
                 Default is ``False``.
         checkpoint_path (str): The path to the checkpoint file for resuming training. 
@@ -319,7 +317,6 @@ class TrainerConfig(BaseConfig):
         AssertionError: If `project_name` is not provided.
             If `experiment_id` is not provided, a random ID will be generated.
             If `epochs`, `max_best_models`, or `iters_for_checkpoint` are less than 1.
-            If `wandb_logger` is True and `wandb_auth_key` is not provided.
             If `resume_from_checkpoint` is True and `checkpoint_path` is not provided.
             If `epoch_start` is less than 1.
     """
@@ -340,7 +337,6 @@ class TrainerConfig(BaseConfig):
         iters_for_checkpoint: int = 1,
         save_optimizer_dict: bool = False,
         wandb_logger: bool = True,
-        wandb_auth_key: str = "",
         resume_from_checkpoint: bool = False,
         checkpoint_path: str = "",
         epoch_start: int = 1,
@@ -363,7 +359,6 @@ class TrainerConfig(BaseConfig):
         self.iters_for_checkpoint = iters_for_checkpoint
         self.save_optimizer_dict = save_optimizer_dict
         self.wandb_logger = wandb_logger
-        self.wandb_auth_key = wandb_auth_key
         self.resume_from_checkpoint = resume_from_checkpoint
         self.checkpoint_path = checkpoint_path
         self.epoch_start = epoch_start # 1-indexed epoch counter
@@ -375,8 +370,6 @@ class TrainerConfig(BaseConfig):
         check_argument("epochs", self.epochs, min_val=1)
         check_argument("max_best_models", self.max_best_models, min_val=1, max_val=10)
         check_argument("iters_for_checkpoint", self.iters_for_checkpoint, min_val=1)
-        if (self.wandb_logger):
-            assert self.wandb_auth_key, "wandb_auth_key not provided (wandb_logger is set as True). You can find your API key in your browser here: https://wandb.ai/authorize."
         if (self.resume_from_checkpoint):
             assert self.checkpoint_path, "checkpoint_path not provided (warm_start has been enabled) to start training"
         check_argument("epoch_start", self.epoch_start, min_val=1)
@@ -577,6 +570,9 @@ def load_configs(path: str) -> Dict:
         if task == 'TTS':
             if model_name == 'Tacotron2':
                 configs['model_config'] = Tacotron2Config(**config_json['model_config'])
+        else:
+            if model_name == "MelGAN":
+                configs['model_config'] = MelGANConfig(**config_json['model_config'])
     if 'optimizer_config' in config_json:
         configs['optimizer_config'] = OptimizerConfig(**config_json['optimizer_config'])
     return configs

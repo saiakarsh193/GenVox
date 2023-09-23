@@ -115,6 +115,42 @@ def load_yaml(path):
         data = yaml.load(f, Loader=yaml.SafeLoader)
     return data
 
+def human_readable_int(val: int, precision: int = 2):
+    K, M, B = 1e3, 1e6, 1e9
+    if abs(val) < K:
+        return str(val)
+    if abs(val) < M:
+        if val % K == 0:
+            return f"{val // K}K"
+        return f"{val / K:.{precision}f}K"
+    if abs(val) < B:
+        if val % M == 0:
+            return f"{val // M}M"
+        return f"{val / M:.{precision}f}M"
+    if val % B == 0:
+        return f"{val // B}B"
+    return f"{val / B:.{precision}f}B"
+
+def count_parameters(model):
+    total_c = 0
+    trainable_c = 0
+    for p in model.parameters():
+        total_c += p.numel()
+        if p.requires_grad:
+            trainable_c += p.numel()
+    return {"total_parameters": total_c, "trainable_parameters": trainable_c, "nontrainable_parameters": total_c - trainable_c}
+
+def print_count_parameters(model):
+    counts = count_parameters(model)
+    preheading = ("-" * 10) + f" {model.__class__.__module__}.{model.__class__.__name__} (Parameters Count Summary) " + ("-" * 10)
+    postheading = ("-" * len(preheading))
+    just_count = 10
+    print(preheading)
+    print("Trainable Parameters     : " + str(counts["trainable_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["trainable_parameters"]) + ")")
+    print("Non-Trainable Parameters : " + str(counts["nontrainable_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["nontrainable_parameters"]) + ")")
+    print("Total Parameters         : " + str(counts["total_parameters"]).rjust(just_count) + " (" + human_readable_int(counts["total_parameters"]) + ")")
+    print(postheading)
+
 ########### plotters ############
 
 def saveplot_mel(mel, path, title=False):
