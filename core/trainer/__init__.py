@@ -116,7 +116,7 @@ class Trainer:
         self.train_dataloader: DataLoader = self.model.get_train_dataloader(
             dump_dir=self.dump_dir,
             num_loader_workers=self.config.num_loader_workers,
-            batch_size=self.config.batch_size
+            batch_size=self.config.batch_size if not self.config.debug_run else 2
         )
         if self.config.run_eval:
             print("run_eval set as True. loading eval dataloader, preparing output log directory")
@@ -181,6 +181,9 @@ class Trainer:
                 # logging to wandb
                 if (self.config.use_wandb):
                     self.wandb_logger.log(self.model.get_train_step_logs(), epoch=iteration, commit=True)
+                
+                if self.config.debug_run:
+                    break
 
             end_epoch = time.time() # end time of epoch
             epoch_time = end_epoch - start_epoch
@@ -194,6 +197,9 @@ class Trainer:
             log_print(f"estimated time remaining: {sec_to_formatted_time(remaining_time)}")
             log_print(f"training ending at {current_formatted_time(sec_add=remaining_time)}")
             print()
+
+            if self.config.debug_run:
+                break
 
         # training done
         center_print(f"TRAINING END ({current_formatted_time()})", space_factor=0.35)

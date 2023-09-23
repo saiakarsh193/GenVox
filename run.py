@@ -1,7 +1,7 @@
 from utils.formatters import BaseDataset
 from configs import TextConfig, AudioConfig, TrainerConfig
 from configs.models import Tacotron2Config
-from models.tts import TTSModel
+from models.tts.tacotron2 import Tacotron2
 from core.processors import DataPreprocessor
 from core.trainer import Trainer
 
@@ -39,14 +39,14 @@ audio_config = AudioConfig(
     ref_level_db=1.0
 )
 
-# data_preprocessor = DataPreprocessor(
-#     datasets=[dataset2],
-#     # datasets=[dataset, dataset2],
-#     text_config=text_config,
-#     audio_config=audio_config,
-#     eval_split=500,
-#     dump_dir="dump"
-# )
+data_preprocessor = DataPreprocessor(
+    datasets=[dataset2],
+    # datasets=[dataset, dataset2],
+    text_config=text_config,
+    audio_config=audio_config,
+    eval_split=500,
+    dump_dir="dump"
+)
 # data_preprocessor.run()
 
 trainer_config = TrainerConfig(
@@ -54,7 +54,7 @@ trainer_config = TrainerConfig(
     experiment_id="run_10",
     notes="First Vocoder run",
     use_cuda=True,
-    epochs=200,
+    epochs=5,
     batch_size=16,
     eval_batch_size=16,
     num_loader_workers=0,
@@ -65,9 +65,8 @@ trainer_config = TrainerConfig(
     debug_run=True
 )
 
-tacotron2_config = Tacotron2Config()
-tacotron2 = TTSModel(
-    model_config=tacotron2_config,
+tacotron2 = Tacotron2(
+    model_config=Tacotron2Config(),
     audio_config=audio_config,
     text_config=text_config,
     trainer_config=trainer_config
