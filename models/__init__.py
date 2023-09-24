@@ -3,9 +3,6 @@ from torch import nn
 from torch.utils.data import DataLoader
 from typing import Literal, Dict, Callable, Union, List, Tuple, Optional
 
-from configs import TrainerConfig, AudioConfig, TextConfig, BaseConfig
-from core.trainer.wandb_logger import WandbLogger
-
 _DATASET_SPLIT_TYPE = Literal[
     "train",
     "eval"   
@@ -54,5 +51,5 @@ class BaseModel(nn.Module):
     def get_train_step_logs(self) -> Dict:
         raise NotImplementedError
 
-    def get_eval_step_logs(self, wandb_logger: Optional[WandbLogger] = None) -> Dict:
+    def get_eval_step_logs(self, wandb_logger = None) -> Dict:
         raise NotImplementedError

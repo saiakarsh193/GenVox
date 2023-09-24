@@ -529,10 +529,10 @@ class Tacotron2(TTSModel):
         # chose a random output
         eval_ind = random.randrange(0, batch["token_padded"].size(0))
         n_tok, n_frames = batch["token_lengths"][eval_ind].item(), batch["mel_lengths"][eval_ind].item()
-        mel_gt = batch["mel_padded"][eval_ind, :, : n_frames].cpu().numpy(),
-        gate_gt = batch["gate_padded"][eval_ind, : n_frames].cpu().numpy(),
-        mel_pred = outputs["mel_outputs_postnet"][eval_ind, :, : n_frames].cpu().numpy(),
-        gate_pred = torch.sigmoid(outputs["gate_outputs"][eval_ind, : n_frames]).cpu().numpy(),
+        mel_gt = batch["mel_padded"][eval_ind, :, : n_frames].cpu().numpy()
+        gate_gt = batch["gate_padded"][eval_ind, : n_frames].cpu().numpy()
+        mel_pred = outputs["mel_outputs_postnet"][eval_ind, :, : n_frames].cpu().numpy()
+        gate_pred = torch.sigmoid(outputs["gate_outputs"][eval_ind, : n_frames]).cpu().numpy()
         alignments = outputs["alignments"][eval_ind, : n_frames, : n_tok].cpu().numpy().T # [n_frames, n_tok] -> [n_tok, n_frames]
         # save the output
         saveplot_mel(mel_gt, os.path.join(eval_outdir, "mel_tar.png"))

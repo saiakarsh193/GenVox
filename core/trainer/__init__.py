@@ -154,7 +154,11 @@ class Trainer:
         log_print(f"eval_batch_size: {self.config.eval_batch_size}")
         self.model.eval()
         start_valid = time.time()
-        batch = random.choice(self.eval_dataloader)
+        # chose a random batch from eval_dataloader
+        batch_ind = random.randrange(0, len(self.eval_dataloader))
+        for ind, batch in enumerate(self.eval_dataloader):
+            if ind == batch_ind:
+                break
         batch = self.model.prepare_batch(batch)
         self.model.eval_step(
             batch=batch,
@@ -163,7 +167,7 @@ class Trainer:
         )
         end_valid = time.time()
         self.model.train()
-        log_print(f"eval done ({iteration}) -> {end_valid - start_valid: .2f} s")
+        log_print(f"eval done (iteration: {iteration}) -> {end_valid - start_valid: .2f} s")
 
         if (self.config.use_wandb):
             log_print(f"logging eval data to wandb")
