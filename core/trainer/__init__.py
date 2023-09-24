@@ -20,15 +20,15 @@ class Trainer:
             self,
             model: BaseModel,
             trainer_config: TrainerConfig,
+            audio_config: AudioConfig,
             text_config: Optional[TextConfig] = None,
-            audio_config: Optional[AudioConfig] = None,
             dump_dir: str = "dump",
             exp_dir: str = "exp"
         ):
         self.model = model
         self.config = trainer_config
-        self.text_config = text_config
         self.audio_config = audio_config
+        self.text_config = text_config
         self.dump_dir = dump_dir
         self.exp_dir = exp_dir
 
@@ -51,7 +51,8 @@ class Trainer:
         center_print(f"TRAINING PREPARATION ({current_formatted_time()})", space_factor=0.35)
 
         if self.config.debug_run:
-            print("debug_run set to True, skipping unnecessary prints, asserts")
+            print("debug_run set to True, skipping unnecessary prints, asserts and reducing batch_size")
+            self.config.batch_size = 2
 
         # checking for exp directory (depending on whether we are resuming training or not, and debug_run is True or not)
         if (self.config.checkpoint_path != None):
@@ -71,10 +72,10 @@ class Trainer:
         BaseConfig.write_configs_to_file(
             path=self.config_yaml_path,
             configs={
-                "trainer_config": self.config,
-                "text_config": self.text_config,
-                "audio_config": self.audio_config,
                 "model_config": self.model.model_config,
+                "trainer_config": self.config,
+                "audio_config": self.audio_config,
+                "text_config": self.text_config
             }
         )
 
@@ -94,6 +95,7 @@ class Trainer:
                 seed=self.config.seed,
                 epochs=self.config.epochs
             )
+            self.wandb_logger.define_metrics(self.model.get_wandb_metrics())
 
         # printing configs
         if not self.config.debug_run:
@@ -106,16 +108,12 @@ class Trainer:
         torch.manual_seed(self.config.seed)
         torch.cuda.manual_seed(self.config.seed)
 
-        # setting criterion and optimizers
-        self.criterion = self.model.get_criterion()
-        self.optimizer = self.model.get_optimizer()
-
         # data loading and outdir prep
         print("loading train dataloader")
         self.train_dataloader: DataLoader = self.model.get_train_dataloader(
             dump_dir=self.dump_dir,
             num_loader_workers=self.config.num_loader_workers,
-            batch_size=self.config.batch_size if not self.config.debug_run else 2
+            batch_size=self.config.batch_size
         )
         if self.config.run_eval:
             print("run_eval set as True. loading eval dataloader, preparing output log directory")
@@ -131,6 +129,8 @@ class Trainer:
 
         # loading checkpoint state_dict into model to resume training
         # if (self.config.checkpoint_path != None):
+        #    load_checkpoint()
+        self.model.to(self.device)
 
         if not self.config.debug_run: # print model details only when NOT in debug_run
             center_print(f"MODEL DETAILS", space_factor=0.1)
@@ -140,10 +140,35 @@ class Trainer:
 
         self.epoch_start = 0
         self.iteration_start = 0
+        # setting criterion and optimizers
+        self.criterion = self.model.get_criterion()
+        self.optimizer = self.model.get_optimizer()
+
+        # torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
+        # torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
     def _eval_loop(self, iteration: int) -> float:
         center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35)
-        return 0
+        eval_output_path = os.path.join(self.eval_outdir, f"iter_{iteration}")
+        os.mkdir(eval_output_path)
+        log_print(f"eval_batch_size: {self.config.eval_batch_size}")
+        self.model.eval()
+        start_valid = time.time()
+        batch = random.choice(self.eval_dataloader)
+        batch = self.model.prepare_batch(batch)
+        self.model.eval_step(
+            batch=batch,
+            criterion=self.criterion,
+            eval_outdir=eval_output_path
+        )
+        end_valid = time.time()
+        self.model.train()
+        log_print(f"eval done ({iteration}) -> {end_valid - start_valid: .2f} s")
+
+        if (self.config.use_wandb):
+            log_print(f"logging eval data to wandb")
+            self.wandb_logger.log(values=self.model.get_eval_step_logs(wandb_logger=self.wandb_logger), iteration=iteration, commit=False)
+        return self.model.get_eval_priority()
 
     def _train_loop(self):
         # setting training variables
@@ -166,7 +191,12 @@ class Trainer:
                 )
                 end_iter = time.time() # end time of iteration
                 iteration += 1
-                log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
+
+                # printing logs
+                if self.config.debug_run or iteration % 50 == 0:
+                    log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
+                if self.config.debug_run:
+                    log_print(self.model.get_train_step_logs())
 
                 # evaluation and checkpoint saving
                 if (self.config.run_eval and (iteration % self.config.iters_for_checkpoint == 0 or (iteration == total_iterations))): # every iters_per_checkpoint or last iteration
@@ -174,12 +204,13 @@ class Trainer:
                     self.checkpoint_manager.save_model(
                         iteration=iteration, 
                         model=self.model,
+                        optimizer=self.optimizer,
                         priority_value=priority_value
                     )
 
                 # logging to wandb
                 if (self.config.use_wandb):
-                    self.wandb_logger.log(self.model.get_train_step_logs(), epoch=iteration, commit=True)
+                    self.wandb_logger.log(values=self.model.get_train_step_logs(), iteration=iteration, commit=True)
                 
                 if self.config.debug_run:
                     break

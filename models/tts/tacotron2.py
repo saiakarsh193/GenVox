@@ -1,9 +1,13 @@
+import os
+import random
 from math import sqrt
 import torch
 from torch import nn
 from torch.nn import functional as F
-from typing import Callable, List, Dict, Union, Any
+from typing import Callable, List, Dict, Optional, Union, Any
+from core.trainer.wandb_logger import WandbLogger
 
+from utils.plotting import saveplot_gate, saveplot_mel, saveplot_alignment
 from configs import TextConfig, AudioConfig, TrainerConfig
 from configs.models import Tacotron2Config
 from models.tts import TTSModel
@@ -477,12 +481,13 @@ class Tacotron2(TTSModel):
 
     def inference(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # { "tokens": [1, n_tok] }
-        embedded_inputs = self.embedding(inputs["tokens"]).transpose(1, 2) # [1, n_tok] -> [1, n_tok, sym_dim] -> [1, sym_dim, n_tok]
-        encoder_outputs = self.encoder.inference(embedded_inputs) # [1, sym_dim, n_tok] -> [1, n_tok, enc_dim]
-        # [1, n_mels, n_frames], [1, n_frames], [1, n_frames, n_tok] <- [1, n_tok, enc_dim]
-        mel_outputs, gate_outputs, alignments = self.decoder.inference(encoder_outputs)
-        mel_outputs_postnet = self.postnet(mel_outputs) # [1, n_mels, n_frames]
-        mel_outputs_postnet = mel_outputs + mel_outputs_postnet # [1, n_mels, n_frames]
+        with torch.no_grad():
+            embedded_inputs = self.embedding(inputs["tokens"]).transpose(1, 2) # [1, n_tok] -> [1, n_tok, sym_dim] -> [1, sym_dim, n_tok]
+            encoder_outputs = self.encoder.inference(embedded_inputs) # [1, sym_dim, n_tok] -> [1, n_tok, enc_dim]
+            # [1, n_mels, n_frames], [1, n_frames], [1, n_frames, n_tok] <- [1, n_tok, enc_dim]
+            mel_outputs, gate_outputs, alignments = self.decoder.inference(encoder_outputs)
+            mel_outputs_postnet = self.postnet(mel_outputs) # [1, n_mels, n_frames]
+            mel_outputs_postnet = mel_outputs + mel_outputs_postnet # [1, n_mels, n_frames]
 
         outputs = {
             "mel_outputs": mel_outputs, # [1, n_mels, n_frames]
@@ -515,6 +520,35 @@ class Tacotron2(TTSModel):
         self.grad_norm_val = torch.nn.utils.clip_grad_norm_(self.parameters(), self.model_config.grad_clip_thresh).item()
         optimizer["optimizer"].step()
 
+    def eval_step(self, batch: Dict, criterion: Dict, eval_outdir: str) -> None:
+        # do eval step for one batch
+        with torch.no_grad():
+            outputs = self.forward(batch=batch)
+            loss = criterion["loss"](batch, outputs)
+        self.loss_items_eval = {(key + "_eval"): val.item() for key, val in loss.items()}
+        # chose a random output
+        eval_ind = random.randrange(0, batch["token_padded"].size(0))
+        n_tok, n_frames = batch["token_lengths"][eval_ind].item(), batch["mel_lengths"][eval_ind].item()
+        mel_gt = batch["mel_padded"][eval_ind, :, : n_frames].cpu().numpy(),
+        gate_gt = batch["gate_padded"][eval_ind, : n_frames].cpu().numpy(),
+        mel_pred = outputs["mel_outputs_postnet"][eval_ind, :, : n_frames].cpu().numpy(),
+        gate_pred = torch.sigmoid(outputs["gate_outputs"][eval_ind, : n_frames]).cpu().numpy(),
+        alignments = outputs["alignments"][eval_ind, : n_frames, : n_tok].cpu().numpy().T # [n_frames, n_tok] -> [n_tok, n_frames]
+        # save the output
+        saveplot_mel(mel_gt, os.path.join(eval_outdir, "mel_tar.png"))
+        saveplot_mel(mel_pred, os.path.join(eval_outdir, "mel_pred.png"))
+        saveplot_gate(gate_gt, gate_pred, os.path.join(eval_outdir, "gate.png"), plot_both=True)
+        saveplot_alignment(alignments, os.path.join(eval_outdir, "alignments.png"))
+        self.loss_outputs = {
+            "mel_tar": os.path.join(eval_outdir, "mel_tar.png"),
+            "mel_pred": os.path.join(eval_outdir, "mel_pred.png"),
+            "gate": os.path.join(eval_outdir, "gate.png"),
+            "alignments": os.path.join(eval_outdir, "alignments.png"),
+        }
+
+    def get_eval_priority(self) -> float:
+        return self.loss_items_eval["loss_eval"]
+
     def get_train_step_logs(self) -> Dict:
         train_logs = {}
         train_logs.update(self.loss_items)
@@ -522,6 +556,26 @@ class Tacotron2(TTSModel):
             "grad_norm": self.grad_norm_val
         })
         return train_logs
+
+    def get_eval_step_logs(self, wandb_logger: WandbLogger) -> Dict:
+        eval_logs = {}
+        eval_logs.update(self.loss_items_eval)
+        eval_logs.update({
+            "mel": [
+                wandb_logger.Image(self.loss_outputs["mel_tar"], caption='mel target'),
+                wandb_logger.Image(self.loss_outputs["mel_pred"], caption='mel predicted')
+            ],
+            "gate": wandb_logger.Image(self.loss_outputs["gate"], caption='gate'),
+            "alignments": wandb_logger.Image(self.loss_outputs["alignments"], caption='alignments')
+        })
+        return eval_logs
+
+    def get_checkpoint_statedicts(self, optimizer: Optional[Dict]) -> Dict:
+        statedicts = {}
+        statedicts["model_statedict"] = self.state_dict()
+        if optimizer != None:
+            statedicts["optim_statedict"] = optimizer["optimizer"].state_dict()
+        return statedicts
 
 def Tacotron2Loss(batch, outputs):
     mel_target, gate_target = batch["mel_padded"], batch["gate_padded"] # [B, n_mels, n_frames], [B, n_frames]

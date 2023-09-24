@@ -29,6 +29,7 @@ class CheckpointManager:
             self,
             iteration: int,
             model: BaseModel,
+            optimizer: torch.optim.Optimizer,
             priority_value: Union[int, float]
         ) -> None:
         # load existing manager data and figure out where to add the current model
@@ -42,13 +43,14 @@ class CheckpointManager:
         if (add_at_index == self.max_best_models):
             return
         # get model data and save it
-        model_dict = model.get_checkpoint_statedicts(save_optimizer_dict=self.save_optimizer_dict)
+        model_dict = model.get_checkpoint_statedicts(optimizer=(optimizer if self.save_optimizer_dict else None))
+        model_dict["iteration"] = iteration
         model_path = os.path.join(self.exp_dir, f"checkpoint_{iteration}.pt")
+        torch.save(model_dict, model_path)
         manager_data.insert(add_at_index, {
             "priority_value": priority_value,
             "model_path": model_path
         })
-        torch.save(model_dict, model_path)
         # removing the last checkpoint in the manager if more than max value
         if (len(manager_data) > self.max_best_models):
             removed_checkpoint = manager_data.pop()

@@ -1,9 +1,10 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from typing import Literal, Dict, Callable, Union
+from typing import Literal, Dict, Callable, Union, List, Tuple, Optional
 
 from configs import TrainerConfig, AudioConfig, TextConfig, BaseConfig
+from core.trainer.wandb_logger import WandbLogger
 
 _DATASET_SPLIT_TYPE = Literal[
     "train",
@@ -19,30 +20,39 @@ class BaseModel(nn.Module):
 
     def get_eval_dataloader(self, dump_dir: str, num_loader_workers: int, batch_size: int) -> DataLoader:
         raise NotImplementedError
-    
+
     def get_criterion(self) -> Dict[str, Union[Callable, nn.Module]]:
         raise NotImplementedError
-    
+
     def get_optimizer(self) -> Dict[str, torch.optim.Optimizer]:
         raise NotImplementedError
-    
-    def get_checkpoint_statedicts(self, save_optimizer_dict: bool) -> Dict:
+
+    def get_wandb_metrics(self) -> List[Tuple[str, str]]:
         raise NotImplementedError
-    
+
+    def get_checkpoint_statedicts(self, optimizer: Optional[Dict[str, torch.optim.Optimizer]] = None) -> Dict:
+        raise NotImplementedError
+
     def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
-    
+
     def train_step(self, batch: Dict, criterion: Dict, optimizer: Dict) -> None:
         raise NotImplementedError
-    
-    def forward(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+
+    def eval_step(self, batch: Dict, criterion: Dict, eval_outdir: Optional[str] = None) -> None:
         raise NotImplementedError
     
+    def get_eval_priority(self) -> float:
+        raise NotImplementedError
+
+    def forward(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        raise NotImplementedError
+
     def inference(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
     def get_train_step_logs(self) -> Dict:
         raise NotImplementedError
-    
-    def get_eval_step_logs(self) -> Dict:
+
+    def get_eval_step_logs(self, wandb_logger: Optional[WandbLogger] = None) -> Dict:
         raise NotImplementedError

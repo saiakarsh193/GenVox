@@ -1,4 +1,5 @@
 import wandb
+from typing import List, Tuple, Dict, Any
 
 class WandbLogger:
     def __init__(
@@ -21,14 +22,15 @@ class WandbLogger:
             }
         )
 
-    def define_metric(self, value, summary):
-        wandb.define_metric(value, summary=summary)
+    def define_metrics(self, metrics: List[Tuple[str, str]]) -> None:
+        for value, summary in metrics:
+            wandb.define_metric(value, summary=summary)
     
     def Image(self, img, caption=""):
         return wandb.Image(img, caption=caption)
 
-    def log(self, values, epoch, commit=False):
-        wandb.log(values, step=epoch, commit=commit)
+    def log(self, values: Dict[str, Any], iteration: int, commit: bool = False):
+        wandb.log(values, step=iteration, commit=commit)
 
     def finish(self):
         wandb.finish()

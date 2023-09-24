@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 from configs import AudioConfig, BaseConfig, TextConfig, TrainerConfig
 from models import BaseModel, _DATASET_SPLIT_TYPE
@@ -87,7 +87,8 @@ class TTSModel(BaseModel):
             num_workers=num_loader_workers,
             shuffle=True,
             batch_size=batch_size,
-            collate_fn=TextMelCollateFn()
+            collate_fn=TextMelCollateFn(),
+            drop_last=True
         )
     
     def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -95,3 +96,9 @@ class TTSModel(BaseModel):
             # NOTE: might need to do val.contiguous()
             batch[key] = val.to(device=self.device)
         return batch
+
+    def get_wandb_metrics(self) -> List[Tuple[str, str]]:
+        return [
+            ("loss", "min"),
+            ("loss_eval", "min")
+        ]
