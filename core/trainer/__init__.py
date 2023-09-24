@@ -127,10 +127,22 @@ class Trainer:
             if not os.path.isdir(self.eval_outdir):
                 os.mkdir(self.eval_outdir)
 
-        # loading checkpoint state_dict into model to resume training
-        # if (self.config.checkpoint_path != None):
-        #    load_checkpoint()
+        self.epoch_start = 0
+        self.iteration_start = 0
+        # setting criterion and optimizers
+        self.criterion = self.model.get_criterion()
+        self.optimizer = self.model.get_optimizer()
         self.model.to(self.device)
+
+        # loading checkpoint state_dict into model to resume training
+        if (self.config.checkpoint_path != None):
+            self.iteration_start = self.checkpoint_manager.load_model(
+                model=self.model,
+                optimizer=self.optimizer,
+                checkpoint_path=self.config.checkpoint_path,
+                device=self.device
+            )
+            self.epoch_start = self.iteration_start // len(self.train_dataloader)
 
         if not self.config.debug_run: # print model details only when NOT in debug_run
             center_print(f"MODEL DETAILS", space_factor=0.1)
@@ -138,16 +150,10 @@ class Trainer:
             print(self.model)
             print_parameter_count(self.model)
 
-        self.epoch_start = 0
-        self.iteration_start = 0
-        # setting criterion and optimizers
-        self.criterion = self.model.get_criterion()
-        self.optimizer = self.model.get_optimizer()
-
         # torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
         # torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
-    def _eval_loop(self, iteration: int) -> float:
+    def _eval_run(self, iteration: int) -> float:
         center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35)
         eval_output_path = os.path.join(self.eval_outdir, f"iter_{iteration}")
         os.mkdir(eval_output_path)
@@ -204,7 +210,7 @@ class Trainer:
 
                 # evaluation and checkpoint saving
                 if (self.config.run_eval and (iteration % self.config.iters_for_checkpoint == 0 or (iteration == total_iterations))): # every iters_per_checkpoint or last iteration
-                    priority_value = self._eval_loop(iteration)
+                    priority_value = self._eval_run(iteration)
                     self.checkpoint_manager.save_model(
                         iteration=iteration, 
                         model=self.model,

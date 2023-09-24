@@ -30,6 +30,9 @@ class BaseModel(nn.Module):
     def get_checkpoint_statedicts(self, optimizer: Optional[Dict[str, torch.optim.Optimizer]] = None) -> Dict:
         raise NotImplementedError
 
+    def load_checkpoint_statedicts(self, statedicts: Dict, save_optimizer_dict: bool, optimizer: Dict[str, torch.optim.Optimizer]) -> None:
+        raise NotImplementedError
+
     def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
@@ -51,5 +54,5 @@ class BaseModel(nn.Module):
     def get_train_step_logs(self) -> Dict:
         raise NotImplementedError
 
-    def get_eval_step_logs(self, wandb_logger = None) -> Dict:
+    def get_eval_step_logs(self, wandb_logger) -> Dict:
         raise NotImplementedError

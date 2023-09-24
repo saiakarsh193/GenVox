@@ -25,11 +25,23 @@ class CheckpointManager:
         #     }
         # ]
 
+    def load_model(
+            self,
+            model: BaseModel,
+            optimizer: Dict[str, torch.optim.Optimizer],
+            checkpoint_path: str,
+            device: str
+        ) -> int:
+        model_dict = torch.load(checkpoint_path, map_location=device)
+        print("loading model_dict (iteration: {itr}) from checkpoint_path {chk_path}".format(itr=model_dict["iteration"], chk_path=checkpoint_path))
+        model.load_checkpoint_statedicts(statedicts=model_dict, save_optimizer_dict=self.save_optimizer_dict, optimizer=optimizer)
+        return model_dict["iteration"]
+
     def save_model(
             self,
             iteration: int,
             model: BaseModel,
-            optimizer: torch.optim.Optimizer,
+            optimizer: Dict[str, torch.optim.Optimizer],
             priority_value: Union[int, float]
         ) -> None:
         # load existing manager data and figure out where to add the current model

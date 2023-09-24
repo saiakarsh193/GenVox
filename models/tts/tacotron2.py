@@ -576,6 +576,11 @@ class Tacotron2(TTSModel):
         if optimizer != None:
             statedicts["optim_statedict"] = optimizer["optimizer"].state_dict()
         return statedicts
+    
+    def load_checkpoint_statedicts(self, statedicts: Dict, save_optimizer_dict: bool, optimizer: Dict) -> None:
+        self.load_state_dict(statedicts["model_statedict"])
+        if save_optimizer_dict:
+            optimizer["optimizer"].load_state_dict(statedicts["optim_statedict"])
 
 def Tacotron2Loss(batch, outputs):
     mel_target, gate_target = batch["mel_padded"], batch["gate_padded"] # [B, n_mels, n_frames], [B, n_frames]
