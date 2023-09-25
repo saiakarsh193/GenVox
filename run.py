@@ -44,16 +44,16 @@ data_preprocessor.run()
 
 trainer_config = TrainerConfig(
     project_name="genvox_revamp",
-    experiment_id="exp_1",
-    notes="First Revamp run",
+    experiment_id="exp",
+    notes="",
     use_cuda=True,
-    epochs=20,
-    batch_size=64,
-    eval_batch_size=16,
+    epochs=100,
+    batch_size=256,
+    eval_batch_size=32,
     num_loader_workers=0,
-    iters_for_checkpoint=1000,
-    max_best_models=5,
-    run_eval=False,
+    iters_for_checkpoint=200,
+    max_best_models=3,
+    run_eval=True,
     use_wandb=True,
     # debug_run=True
 )

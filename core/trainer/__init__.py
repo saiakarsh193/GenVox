@@ -154,6 +154,7 @@ class Trainer:
         # torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
     def _eval_run(self, iteration: int) -> float:
+        print()
         center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35)
         eval_output_path = os.path.join(self.eval_outdir, f"iter_{iteration}")
         os.mkdir(eval_output_path)
@@ -178,6 +179,7 @@ class Trainer:
         if (self.config.use_wandb):
             log_print(f"logging eval data to wandb")
             self.wandb_logger.log(values=self.model.get_eval_step_logs(wandb_logger=self.wandb_logger), iteration=iteration, commit=False)
+        print()
         return self.model.get_eval_priority()
 
     def _train_loop(self):
@@ -203,7 +205,7 @@ class Trainer:
                 iteration += 1
 
                 # printing logs
-                if self.config.debug_run or iteration % 50 == 0:
+                if self.config.debug_run or iteration % 20 == 0:
                     log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
                 if self.config.debug_run:
                     log_print(self.model.get_train_step_logs())

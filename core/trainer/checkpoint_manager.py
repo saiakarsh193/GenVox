@@ -63,6 +63,10 @@ class CheckpointManager:
             "priority_value": priority_value,
             "model_path": model_path
         })
+        # linking to best checkpoint
+        tar_file = os.path.abspath(manager_data[0]["model_path"])
+        dest_file = os.path.abspath(os.path.join(self.exp_dir, "best_checkpoint.pt"))
+        os.system(f"ln -sf {tar_file} {dest_file}") # s -> soft link, f -> force overwrite if already exists
         # removing the last checkpoint in the manager if more than max value
         if (len(manager_data) > self.max_best_models):
             removed_checkpoint = manager_data.pop()
