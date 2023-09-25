@@ -31,6 +31,7 @@ class Trainer:
         self.text_config = text_config
         self.dump_dir = dump_dir
         self.exp_dir = exp_dir
+        self.iters_for_log = 10 # numbers of iterations to print log for train iteration output
 
         # setting device
         if (self.config.use_cuda):
@@ -56,9 +57,10 @@ class Trainer:
 
         # checking for exp directory (depending on whether we are resuming training or not, and debug_run is True or not)
         if (self.config.checkpoint_path != None):
-            print(f"overriding exp_dir ({self.exp_dir}) with checkpoint_path ({self.config.checkpoint_path}) to resume training")
-            self.exp_dir = self.config.checkpoint_path
-            assert os.path.isdir(self.exp_dir), f"checkpoint_path ({self.exp_dir}) does not exist"
+            new_exp_dir = os.path.dirname(self.config.checkpoint_path)
+            print(f"checkpoint_path given. overriding exp_dir ({self.exp_dir}) with checkpoint_path directory ({new_exp_dir}) to resume training")
+            self.exp_dir = new_exp_dir
+            assert os.path.isdir(self.exp_dir), f"checkpoint_path directory ({self.exp_dir}) does not exist"
         else:
             if not self.config.debug_run: # if debug_run, dont do assert
                 assert not os.path.isdir(self.exp_dir), f"exp_dir ({self.exp_dir}) already exists"
@@ -205,7 +207,7 @@ class Trainer:
                 iteration += 1
 
                 # printing logs
-                if self.config.debug_run or iteration % 20 == 0:
+                if self.config.debug_run or iteration % self.iters_for_log == 0:
                     log_print(f"{iteration} ({ind + 1}/{len(self.train_dataloader)}|{epoch + 1}) -> {end_iter - start_iter: .2f} s")
                 if self.config.debug_run:
                     log_print(self.model.get_train_step_logs())
