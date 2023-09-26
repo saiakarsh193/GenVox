@@ -9,13 +9,10 @@ GenVox is an end-to-end Python-based neural speech synthesis toolkit that provid
 🥣 Recipes for training your model from scratch with [WandB](https://wandb.ai/) support for logging.  
 ⚒ Tools for creating and processing datasets, and data analysis.  
 ⏱ Codes for optimized audio and text processing, logging, and pipelines for server-specific optimization.  
-🔥 Designed to add your own custom architectures.  
+🔥 Designed to add your own custom architectures easily.  
 
 Supported TTS (Text2Mel):
 - Tacotron2 - [paper](https://arxiv.org/pdf/1712.05884.pdf) - [original repo](https://github.com/NVIDIA/tacotron2)
-
-Supported Vocoders:
-- MelGAN - [paper](https://arxiv.org/pdf/1910.06711.pdf)
 
 ## 📖 Installation
 Clone the [repo](https://github.com/saiakarsh193/GenVox) using any one of the methods
@@ -57,4 +54,20 @@ wandb login # then type your API key (you can find your API key in your browser 
 
 # after all the hard work, you can finally run the code
 python3 run.py
+```
+
+## 📢 Generate speech using a pretrained model
+Check [demo.py](demo.py) for more details
+```python3
+import scipy.io
+from core.synthesizer import Synthesizer
+from models.tts.tacotron2 import Tacotron2
+
+syn = Synthesizer(
+    tts_model_class=Tacotron2,
+    tts_config_path=<path/to/config>,
+    tts_checkpoint_path=<path/to/checkpoint>
+)
+outputs = syn.tts(text="Hello world! This is a test sentence.")
+scipy.io.wavfile.write('pred_sig.wav', outputs["sampling_rate"], outputs["waveform"])
 ```
