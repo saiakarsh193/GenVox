@@ -6,9 +6,10 @@ from torch import nn
 from torch.nn import functional as F
 from typing import Callable, List, Dict, Optional, Union, Any
 from core.trainer.wandb_logger import WandbLogger
+from models import BaseModel
 
 from utils.plotting import saveplot_gate, saveplot_mel, saveplot_alignment
-from configs import TextConfig, AudioConfig, TrainerConfig
+from configs import TextConfig, AudioConfig, TrainerConfig, BaseConfig
 from configs.models import Tacotron2Config
 from models.tts import TTSModel
 from models.generic import LinearNorm, ConvNorm
@@ -413,8 +414,8 @@ class Decoder(nn.Module):
         return mel_outputs, gate_outputs, alignments
 
 class Tacotron2(TTSModel):
-    def __init__(self, model_config: Tacotron2Config, audio_config: AudioConfig, text_config: TextConfig, trainer_config: TrainerConfig) -> None:
-        super().__init__(model_config, audio_config, text_config, trainer_config)
+    def __init__(self, model_config: Tacotron2Config, audio_config: AudioConfig, text_config: TextConfig) -> None:
+        super().__init__(model_config, audio_config, text_config)
         self.model_config: Tacotron2Config = self.model_config # for typing hints
         self.embedding = nn.Embedding(self.text_config.n_tokens, self.model_config.symbols_embedding_dim)
         std = sqrt(2.0 / (self.embedding.num_embeddings + self.embedding.embedding_dim))
@@ -581,6 +582,18 @@ class Tacotron2(TTSModel):
         self.load_state_dict(statedicts["model_statedict"])
         if save_optimizer_dict:
             optimizer["optimizer"].load_state_dict(statedicts["optim_statedict"])
+
+    @staticmethod
+    def load_from_config(config_path: str) -> BaseModel:
+        configs = BaseConfig.load_configs_from_file(
+            path=config_path,
+            config_map={
+                "text_config": TextConfig,
+                "audio_config": AudioConfig,
+                "model_config": Tacotron2Config
+            }
+        )
+        return Tacotron2(**configs)
 
 def Tacotron2Loss(batch, outputs):
     mel_target, gate_target = batch["mel_padded"], batch["gate_padded"] # [B, n_mels, n_frames], [B, n_frames]

@@ -1,5 +1,6 @@
 import os
 import time
+import inspect
 import random
 import numpy as np
 import torch
@@ -68,8 +69,7 @@ class Trainer:
                 os.mkdir(self.exp_dir)
 
         # write all the configs
-        # NOTE: only if no checkpoint path, else load it from there?
-        print(f"writing configs to {self.exp_dir} directory")
+        print(f"writing configs, runner script to {self.exp_dir} directory")
         self.config_yaml_path = os.path.join(self.exp_dir, "config.yaml")
         BaseConfig.write_configs_to_file(
             path=self.config_yaml_path,
@@ -80,6 +80,11 @@ class Trainer:
                 "text_config": self.text_config
             }
         )
+        # copying runner script
+        runner_script_path = os.path.abspath(inspect.stack()[-1].filename)
+        runner_script_bname = os.path.basename(runner_script_path)
+        new_runner_script_path = os.path.join(self.exp_dir, runner_script_bname)
+        os.system(f"cp {runner_script_path} {new_runner_script_path}")
 
         # setting up helper classes
         if self.config.run_eval:
@@ -157,7 +162,7 @@ class Trainer:
 
     def _eval_run(self, iteration: int) -> float:
         print()
-        center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35)
+        center_print(f"EVALUATION ({current_formatted_time()})", space_factor=0.35, fill_symbol="-")
         eval_output_path = os.path.join(self.eval_outdir, f"iter_{iteration}")
         os.mkdir(eval_output_path)
         log_print(f"eval_batch_size: {self.config.eval_batch_size}")
@@ -168,7 +173,7 @@ class Trainer:
         for ind, batch in enumerate(self.eval_dataloader):
             if ind == batch_ind:
                 break
-        batch = self.model.prepare_batch(batch)
+        batch = self.model.prepare_batch(batch, device=self.device)
         self.model.eval_step(
             batch=batch,
             criterion=self.criterion,
@@ -181,6 +186,7 @@ class Trainer:
         if (self.config.use_wandb):
             log_print(f"logging eval data to wandb")
             self.wandb_logger.log(values=self.model.get_eval_step_logs(wandb_logger=self.wandb_logger), iteration=iteration, commit=False)
+        center_print("", space_factor=0, fill_symbol="-")
         print()
         return self.model.get_eval_priority()
 
@@ -197,7 +203,7 @@ class Trainer:
             log_print(f"epoch start: {epoch + 1} / {self.config.epochs}")
             for ind, batch in enumerate(self.train_dataloader):
                 start_iter = time.time() # start time of iteration
-                batch = self.model.prepare_batch(batch)
+                batch = self.model.prepare_batch(batch, device=self.device)
                 self.model.train_step(
                     batch=batch,
                     criterion=self.criterion,

@@ -61,8 +61,7 @@ trainer_config = TrainerConfig(
 tacotron2 = Tacotron2(
     model_config=Tacotron2Config(),
     audio_config=audio_config,
-    text_config=text_config,
-    trainer_config=trainer_config
+    text_config=text_config
 )
 
 trainer = Trainer(

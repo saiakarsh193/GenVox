@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -33,7 +34,7 @@ class BaseModel(nn.Module):
     def load_checkpoint_statedicts(self, statedicts: Dict, save_optimizer_dict: bool, optimizer: Dict[str, torch.optim.Optimizer]) -> None:
         raise NotImplementedError
 
-    def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def prepare_batch(self, batch: Dict[str, torch.Tensor], device: str) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
     def train_step(self, batch: Dict, criterion: Dict, optimizer: Dict) -> None:
@@ -55,4 +56,8 @@ class BaseModel(nn.Module):
         raise NotImplementedError
 
     def get_eval_step_logs(self, wandb_logger) -> Dict:
+        raise NotImplementedError
+
+    @staticmethod
+    def load_from_config(config_path: str) -> BaseModel:
         raise NotImplementedError

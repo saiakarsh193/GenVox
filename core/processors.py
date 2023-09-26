@@ -1,20 +1,17 @@
 import os
 import tqdm
 import subprocess
-import shutil
 import random
 import scipy.io
 import numpy as np
-from pathlib import Path
 import g2p_en
-from typing import List, Dict, Callable, Set, Union
+from typing import List, Dict, Callable, Set, Union, Tuple
 
 from configs import TextConfig, AudioConfig
 from utils import get_non_silent_boundary, sec_to_formatted_time, dump_json, load_json
-# from utils import get_random_HEX_name, sec_to_formatted_time, get_silent_signal_ind, dump_json, load_json, createDatasetFromYoutube
 from utils.formatters import BaseDataset
 from utils.text import base_cleaners
-from utils.audio import normalize_signal, get_mel_filter, stft, fft2mel, amplitude_to_db
+from utils.audio import normalize_signal, get_mel_filter, stft, fft2mel, amplitude_to_db, db_to_amplitude, get_inverse_mel_filter, mel2fft, griffin_lim, combine_magnitude_phase, istft, reduce_noise
 
 # class DownloadProcessor:
 #     """
@@ -59,7 +56,7 @@ class TextProcessor:
             "english": g2p_en.G2p()
         }
         self.all_unique_tokens: Set[str] = set()
-        self.token_map = None
+        self.token_map = self.config.token_map
     
     def tokenize(self, text: str) -> List[str]:
         if isinstance(self.config.cleaners, list):
@@ -91,6 +88,7 @@ class AudioProcessor:
     def __init__(self, config: AudioConfig):
         self.config = config
         self.mel_basis = get_mel_filter(fs=self.config.sampling_rate, n_fft=self.config.filter_length, n_mels=self.config.n_mels, fmin=self.config.mel_fmin, fmax=self.config.mel_fmax)
+        self.inverse_mel_basis = get_inverse_mel_filter(mel_basis=self.mel_basis)
 
     def format_audio2wav(self, input_path: str, output_path: str) -> None:
         """convert any audio file to the proper wav file using ffmpeg"""
@@ -108,6 +106,23 @@ class AudioProcessor:
         mel_spectrogram = fft2mel(np.abs(spectrogram), self.mel_basis)
         mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db, power=False, scale=1)
         np.save(output_path, mel_db)
+
+    def convert_mel2wav(self, mel: Union[np.ndarray, str]) -> Tuple[int, np.ndarray]:
+        """convert a mel spectrogram to waveform"""
+        if isinstance(mel, str):
+            mel_db = np.load(mel)
+        else:
+            mel_db = mel
+        mel_spectrogram = db_to_amplitude(mel_db, log_func=self.config.log_func, ref=self.config.ref_level_db, power=False, scale=1)
+        spectrogram_mag = mel2fft(mel_spectrogram, self.inverse_mel_basis)
+        spectrogram_ang = griffin_lim(spectrogram_mag, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
+        spectrogram = combine_magnitude_phase(spectrogram_mag, spectrogram_ang)
+        signal = istft(spectrogram, n_fft=self.config.filter_length, hop_length=self.config.hop_length)
+        signal[(signal > 1) | (signal < -1)] = 0 # to remove spurious points
+        signal = signal[500: -500]
+        signal = normalize_signal(signal)
+        signal = reduce_noise(signal, self.config.sampling_rate)
+        return self.config.sampling_rate, signal
 
 
 class DataPreprocessor:
