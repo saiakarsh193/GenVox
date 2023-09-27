@@ -1,23 +1,15 @@
-import os
+from utils.formatters import BaseDataset
+from configs import TextConfig, AudioConfig, TrainerConfig
+from configs.models import Tacotron2Config
+from models.tts.tacotron2 import Tacotron2
+from core.processors import DataPreprocessor
+from core.trainer import Trainer
 
-from config import DownloadConfig, TextConfig, AudioConfig, DatasetConfig, TrainerConfig, Tacotron2Config, OptimizerConfig, MelGANConfig
-from processors import DownloadProcessor, DatasetProcessor
-from trainer import Trainer
-
-dataset_path = "data/LJSpeech-1.1"
-# dataset_path = "data/LJSpeech_test"
-# dataset_path = "data/youtube_3b1b"
-
-# download_config = DownloadConfig(
-#     is_youtube=True,
-#     youtube_link="https://www.youtube.com/watch?v=fRed0Xmc2Wg",
-#     directory_path=dataset_path,
-#     create_directory=True,
-#     speaker_id="3B1B"
-# )
-
-# download_processor = DownloadProcessor(download_config)
-# download_processor()
+dataset = BaseDataset(
+    dataset_path="data/LJSpeech_test",
+    formatter="ljspeech",
+    dataset_name="ljspeech"
+)
 
 text_config = TextConfig(
     language="english",
@@ -38,58 +30,47 @@ audio_config = AudioConfig(
     mel_fmin=0.0,
     mel_fmax=8000.0,
     log_func="np.log",
-    ref_level_db=1
+    ref_level_db=1.0
 )
 
-dataset_config = DatasetConfig(
+data_preprocessor = DataPreprocessor(
+    datasets=[dataset],
     text_config=text_config,
     audio_config=audio_config,
-    delimiter="|",
-    # transcript_path=os.path.join(dataset_path, "transcript.txt"),
-    transcript_path=os.path.join(dataset_path, "metadata.csv"),
-    wavs_path=os.path.join(dataset_path, "wavs"),
-    validation_split=500,
+    eval_split=500,
     dump_dir="dump"
 )
-
-# dataset_processor = DatasetProcessor(dataset_config)
-# dataset_processor()
+data_preprocessor.run()
 
 trainer_config = TrainerConfig(
-    project_name="dev_run_ada",
-    experiment_id="run_10",
-    notes="First Vocoder run",
-    wandb_logger=True,
-    batch_size=16,
-    validation_batch_size=16,
-    num_loader_workers=0,
-    run_validation=True,
+    project_name="genvox2",
+    experiment_id="exp",
+    notes="",
     use_cuda=True,
-    epochs=200,
-    max_best_models=5,
-    iters_for_checkpoint=1000,
+    epochs=100,
+    batch_size=256,
+    eval_batch_size=32,
+    num_loader_workers=0,
+    iters_for_checkpoint=200,
+    max_best_models=3,
+    run_eval=True,
+    use_wandb=True,
+    # debug_run=True
+)
+
+tacotron2 = Tacotron2(
+    model_config=Tacotron2Config(),
+    audio_config=audio_config,
+    text_config=text_config
+)
+
+trainer = Trainer(
+    model=tacotron2,
+    trainer_config=trainer_config,
+    text_config=text_config,
+    audio_config=audio_config,
     dump_dir="dump",
     exp_dir="exp"
 )
 
-melgan_config = MelGANConfig()
-# tacotron2_config = Tacotron2Config()
-
-optimizer_config = OptimizerConfig(
-    learning_rate=0.0001,
-    beta1=0.5,
-    beta2=0.9,
-    weight_decay=0
-)
-
-trainer = Trainer(
-    trainer_config=trainer_config,
-    model_config=melgan_config,
-    # model_config=tacotron2_config,
-    optimizer_config=optimizer_config,
-    audio_config=audio_config,
-    # text_config=text_config,
-    # dataset_config=dataset_config
-)
-
-trainer.train()
+trainer.run()

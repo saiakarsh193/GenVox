@@ -3,6 +3,6 @@ Pipelines that have the runner script written for specific tasks. You can train 
 
 ## Usage
 ```bash
-# for running ULCA pipeline
-python3 pipelines/ulca.py <path/to/ulca_data_zip_file> --task TTS --model Tacotron2 --ada
+# for running ULCA pipeline on Ada
+python3 pipelines/ulca.py <path/to/data> --model tacotron2 --ada --ada_username <username>
 ```
