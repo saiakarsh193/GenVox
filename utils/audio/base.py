@@ -18,7 +18,7 @@ def signal_to_frames(y: np.ndarray, window_length: int, hop_length: int, pad: bo
     return np.vstack(frames)
 
 def normalize_signal(y: np.ndarray) -> np.ndarray:
-    norm_fac = max(abs(np.min(y)), abs(np.max(y)))
+    norm_fac = max(np.abs(np.min(y)), np.abs(np.max(y)))
     return (y / norm_fac).astype(np.float32)
 
 def amplitude_to_db(spectrogram: np.ndarray, amin: float = 1e-5, ref: float = 1.0, log_func: _LOG_TYPE = "np.log10", power: bool = True, scale: float = 20.0) -> np.ndarray:
