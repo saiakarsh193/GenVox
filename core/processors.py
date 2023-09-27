@@ -13,35 +13,6 @@ from utils.formatters import BaseDataset
 from utils.text import base_cleaners
 from utils.audio import normalize_signal, get_mel_filter, stft, fft2mel, amplitude_to_db, db_to_amplitude, get_inverse_mel_filter, mel2fft, griffin_lim, combine_magnitude_phase, istft, reduce_noise
 
-# class DownloadProcessor:
-#     """
-#     For downloading or preparing dataset
-#     """
-#     def __init__(self, config: DownloadConfig):
-#         self.config = config
-    
-#     def __call__(self):
-#         print(self.config)
-#         if (self.config.is_youtube):
-#             temp_directory_path = os.path.join(self.config.directory_path, f"temp_{get_random_HEX_name()}")
-#             os.mkdir(temp_directory_path)
-#             createDatasetFromYoutube(self.config.youtube_link, self.config.directory_path, temp_directory_path, self.config.speaker_id, self.config.verbose)
-#             shutil.rmtree(temp_directory_path)
-#         else:
-#             command = ["wget", self.config.download_link, "-P", self.config.directory_path]
-#             print("running subprocess command: {comm}".format(comm=" ".join(command)))
-#             subprocess.run(command, capture_output=(not self.config.verbose))
-#             file_path = os.path.join(self.config.directory_path, os.path.basename(self.config.download_link))
-#             file_ext = os.path.splitext(file_path)[1]
-#             if (file_ext == ".zip"):
-#                 command = ["unzip", file_path, "-d", self.config.directory_path]
-#             elif (file_ext == ".tar"):
-#                 command = ["tar", "-xzf", file_path, "-C", self.config.directory_path]
-#             else:
-#                 raise ValueError(f"file_extension ({file_ext}) is not supported for extraction")
-#             print("running subprocess command: {comm}".format(comm=" ".join(command)))
-#             subprocess.run(command, capture_output=(not self.config.verbose))
-
 
 class TextProcessor:
     """
