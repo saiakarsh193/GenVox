@@ -43,7 +43,7 @@ data_preprocessor = DataPreprocessor(
 data_preprocessor.run()
 
 trainer_config = TrainerConfig(
-    project_name="genvox_revamp",
+    project_name="genvox2",
     experiment_id="exp",
     notes="",
     use_cuda=True,
