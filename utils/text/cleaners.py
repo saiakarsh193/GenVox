@@ -1,26 +1,15 @@
-'''
-Cleaners are transformations that run over the input text at both training and eval time.
-
-Cleaners can be selected by passing a comma-delimited list of cleaner names as the "cleaners"
-hyperparameter. Some cleaners are English-specific. You'll typically want to use:
-  1. "english_cleaners" for English text
-  2. "transliteration_cleaners" for non-English text that can be transliterated to ASCII using
-     the Unidecode library (https://pypi.python.org/pypi/Unidecode)
-  3. "basic_cleaners" if you do not want to transliterate (in this case, you should also update
-     the symbols in symbols.py to match your data).
-'''
-
 import re
 from .numbers import normalize_numbers
+from typing import Pattern, List, Tuple, Literal
 
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
-_numbers_re = re.compile(r"[0123456789]")
+_numbers_re = re.compile(r"[0-9]")
 _invalid_symbols = re.compile(r"[\[\]~`@#$%^&*()\-_+=|\"\'<>/]")
 
 # List of (regular expression, replacement) pairs for abbreviations:
-_abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in [
+_abbreviations: List[Tuple[Pattern[str], str]] = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in [
     ('mrs', 'misess'),
     ('mr', 'mister'),
     ('dr', 'doctor'),
@@ -42,39 +31,37 @@ _abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in 
 ]]
 
 
-def lowercase(text):
+def lowercase(text: str) -> str:
     return text.lower()
 
-
-def replace_invalid_symbols(text):
+def replace_invalid_symbols(text: str) -> str:
     return re.sub(_invalid_symbols, ' ', text)
 
-
-def expand_abbreviations(text):
+def expand_abbreviations(text: str) -> str:
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
     return text
 
-
-def remove_numbers(text):
+def remove_numbers(text: str) -> str:
     return re.sub(_numbers_re, '', text)
 
-
-def expand_numbers(text):
+def expand_numbers(text: str) -> str:
     return normalize_numbers(text)
 
-
-def collapse_whitespace(text):
+def collapse_whitespace(text: str) -> str:
     return re.sub(_whitespace_re, ' ', text)
 
+_CLEANER_TYPES = Literal[
+    "base_cleaners"
+]
 
-def base_cleaners(text, language="english"):
+def base_cleaners(text: str, language: str = "english", remove_numbers: bool = False) -> str:
     text = lowercase(text)
+    if remove_numbers:
+        text = remove_numbers(text)
     if (language == "english"):
         text = expand_numbers(text)
         text = expand_abbreviations(text)
-    # else:
-    #     text = remove_numbers(text)
     text = replace_invalid_symbols(text)
     text = collapse_whitespace(text)
     return text

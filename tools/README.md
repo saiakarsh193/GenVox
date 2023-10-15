@@ -4,11 +4,8 @@ Helper scripts/tools based on the existing code used for GenVox to do independan
 ## Usage
 ```bash
 # for resampling wav files
-python3 tools/resample.py -i <input_dir> -o <output_dir> -fs <sampling_rate>
+python3 tools/resample.py -i <input_dir> -o <output_dir> -fs <sampling_rate> -nj <number_of_jobs>
 
-# for trimming silence in wav files
-python3 tools/trim_audio.py -i <input_dir> -o <output_dir>
-
-# for analysing dataset directory containing wav files
-python3 tools/dataset_analyse.py <input_dir> --output_path <output_path_image>
+# for creating dataset a from a youtube video
+python3 tools/create_dataset_from_youtube.py <youtube_link> <output_path> --verbose --remove_cache
 ```

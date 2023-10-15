@@ -1,7 +1,6 @@
 numpy
 scipy
 torch
-typeguard
 tqdm
 yt_dlp
 matplotlib

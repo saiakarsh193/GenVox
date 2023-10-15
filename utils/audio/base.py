@@ -2,8 +2,9 @@ import scipy.io
 import scipy.signal
 import numpy as np
 import matplotlib.pyplot as plt
+from configs import _LOG_TYPE
 
-def signal_to_frames(y, window_length, hop_length, pad = False):
+def signal_to_frames(y: np.ndarray, window_length: int, hop_length: int, pad: bool = False) -> np.ndarray:
     # total_length = window_length + (n - 1) * hop_length
     count = (y.shape[0] - window_length) // hop_length + 1
     if (pad):
@@ -16,11 +17,11 @@ def signal_to_frames(y, window_length, hop_length, pad = False):
         frames.append(y[i * hop_length: i * hop_length + window_length])
     return np.vstack(frames)
 
-def normalize_signal(y):
-    norm_fac = max(abs(np.min(y)), abs(np.max(y)))
+def normalize_signal(y: np.ndarray) -> np.ndarray:
+    norm_fac = max(np.abs(np.min(y)), np.abs(np.max(y)))
     return (y / norm_fac).astype(np.float32)
 
-def amplitude_to_db(spectrogram, amin = 1e-5, ref = 1, log_func = "np.log10", power = True, scale = 20):
+def amplitude_to_db(spectrogram: np.ndarray, amin: float = 1e-5, ref: float = 1.0, log_func: _LOG_TYPE = "np.log10", power: bool = True, scale: float = 20.0) -> np.ndarray:
     if (log_func == "np.log"):
         log_func = np.log
     elif (log_func == "np.log10"):
@@ -34,7 +35,7 @@ def amplitude_to_db(spectrogram, amin = 1e-5, ref = 1, log_func = "np.log10", po
     db -= log_func(np.maximum(amin, ref))
     return db * scale
 
-def db_to_amplitude(db, amin = 1e-5, ref = 1, log_func = "np.log10", power = True, scale = 20):
+def db_to_amplitude(db: np.ndarray, amin: float = 1e-5, ref: float = 1.0, log_func: _LOG_TYPE = "np.log10", power: bool = True, scale: float = 20.0) -> np.ndarray:
     if (log_func == "np.log"):
         log_func = np.log
         inv_log_func = np.exp
@@ -50,11 +51,11 @@ def db_to_amplitude(db, amin = 1e-5, ref = 1, log_func = "np.log10", power = Tru
         magnitude_spectrogram = inv_log_func(db)
     return magnitude_spectrogram
 
-def combine_magnitude_phase(magnitude, phase):
+def combine_magnitude_phase(magnitude: np.ndarray, phase: np.ndarray) -> np.ndarray:
     assert magnitude.shape == phase.shape
     return magnitude * (np.cos(phase) + 1j * np.sin(phase))
 
-def stft(y, n_fft, hop_length):
+def stft(y: np.ndarray, n_fft: int, hop_length: int) -> np.ndarray:
     # float32 and real array and 1-D signal
     assert y.dtype == np.float32 and y.dtype.kind == 'f' and y.ndim == 1
     # [n x window_length]
@@ -67,7 +68,7 @@ def stft(y, n_fft, hop_length):
         stft_matrix[: , ind] = np.fft.rfft(window * frame, n_fft)
     return stft_matrix
 
-def istft(stft_matrix, n_fft, hop_length):
+def istft(stft_matrix: np.ndarray, n_fft: int, hop_length: int) -> np.ndarray:
     # n_fft x n -> window_length + (n - 1) * hop_length = signal_length
     y = np.zeros(n_fft + (stft_matrix.shape[1] - 1) * hop_length, dtype=np.float32)
     window = scipy.signal.get_window("hann", n_fft, fftbins=True).astype(np.float32)
@@ -86,7 +87,7 @@ def istft(stft_matrix, n_fft, hop_length):
     y[non_zero_indices] /= ifft_window_sum[non_zero_indices]
     return y
 
-def hz_to_mel(hz):
+def hz_to_mel(hz: float) -> float:
     # htk method => mel = 2595.0 * np.log10(1.0 + f / 700.0)
     # we are using Slaney instead of htk
     f_min = 0.0
@@ -100,7 +101,7 @@ def hz_to_mel(hz):
         mel = (hz - f_min) / f_sp
     return mel
 
-def mel_to_hz(mel):
+def mel_to_hz(mel: float) -> float:
     # we are using Slaney instead of htk
     f_min = 0.0
     f_sp = 200.0 / 3
@@ -113,7 +114,7 @@ def mel_to_hz(mel):
         hz = f_min + f_sp * mel
     return hz
 
-def get_mel_filter(fs, n_fft, n_mels, fmin, fmax):
+def get_mel_filter(fs: int, n_fft: int, n_mels: int, fmin: float, fmax: float) -> np.ndarray:
     weights = np.zeros((n_mels, int(1 + n_fft // 2)), dtype=np.float32)
     # 0 to fs / 2 (nyquist theorem) map to (1 + n_fft / 2) bins (due to np.fft.rfft)
     fftfreqs = np.linspace(0, fs / 2, 1 + n_fft // 2)
@@ -132,18 +133,18 @@ def get_mel_filter(fs, n_fft, n_mels, fmin, fmax):
     weights *= enorm[:, np.newaxis]
     return weights
 
-def get_inverse_mel_filter(mel_basis):
+def get_inverse_mel_filter(mel_basis: np.ndarray) -> np.ndarray:
     return np.linalg.pinv(mel_basis)
 
-def fft2mel(stft_matrix, mel_basis):
+def fft2mel(stft_matrix: np.ndarray, mel_basis: np.ndarray) -> np.ndarray:
     assert stft_matrix.dtype.kind == 'f' # checking data type is real (f: real, c: complex)
     return np.matmul(mel_basis, stft_matrix) # mel_basis should be output of get_mel_filter
 
-def mel2fft(mel_matrix, inverse_basis):
+def mel2fft(mel_matrix: np.ndarray, inverse_basis: np.ndarray) -> np.ndarray:
     assert mel_matrix.dtype.kind == 'f'
     return np.matmul(inverse_basis, mel_matrix) # inverse_basis should be output of get_inverse_mel_filter
 
-def griffin_lim(magnitude_spectrogram, n_fft, hop_length, momentum=0.99, n_iter=32):
+def griffin_lim(magnitude_spectrogram: np.ndarray, n_fft: int, hop_length: int, momentum: float = 0.99, n_iter: int = 32) -> np.ndarray:
     """
     magnitude spectrogram (1 + n_fft / 2, n_frames) -> angles spectrogram (1 + n_fft / 2, n_frames)
     """
@@ -160,11 +161,11 @@ def griffin_lim(magnitude_spectrogram, n_fft, hop_length, momentum=0.99, n_iter=
         previous_angles = rebuilt
     return np.angle(angles)
 
-def butter_lowpass_filter(data, cutoff, fs, order):
+def butter_lowpass_filter(data: np.ndarray, cutoff: float, fs: int, order: int) -> np.ndarray:
     b, a = scipy.signal.butter(order, cutoff, fs=fs, btype='low', analog=False)
     return scipy.signal.lfilter(b, a, data)
 
-def reduce_noise(signal, fs):
+def reduce_noise(signal: np.ndarray, fs: int) -> np.ndarray:
     return butter_lowpass_filter(signal, cutoff=6000, fs=fs, order=6)
 
 
