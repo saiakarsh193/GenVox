@@ -14,6 +14,9 @@ GenVox is an end-to-end Python-based neural speech synthesis toolkit that provid
 Supported TTS (Text2Mel):
 - Tacotron2 - [paper](https://arxiv.org/pdf/1712.05884.pdf) - [original repo](https://github.com/NVIDIA/tacotron2)
 
+Supported Vocoder (Mel2Wav):
+- MelGAN - [paper](https://arxiv.org/pdf/1910.06711.pdf) - [original repo](https://github.com/seungwonpark/melgan)
+
 ## 📖 Installation
 Clone the [repo](https://github.com/saiakarsh193/GenVox) using any one of the methods
 ```bash
@@ -52,8 +55,11 @@ pip install -r requirements.txt # to install the dependencies
 # to use wandb for logging, you need to login (only once)
 wandb login # then type your API key (you can find your API key in your browser at https://wandb.ai/authorize)
 
-# after all the hard work, you can finally run the code
+# after all the hard work, you can finally run the code to train Tacotron2 TTS
 python3 run.py
+
+# or if you want to train MelGAN Vocoder
+python3 run_voc.py
 ```
 
 ## 📢 Generate speech using a pretrained model
@@ -62,11 +68,15 @@ Check [demo.py](demo.py) for more details
 import scipy.io
 from core.synthesizer import Synthesizer
 from models.tts.tacotron2 import Tacotron2
+from models.vocoder.melgan import MelGAN
 
 syn = Synthesizer(
     tts_model_class=Tacotron2,
     tts_config_path=<path/to/config>,
-    tts_checkpoint_path=<path/to/checkpoint>
+    tts_checkpoint_path=<path/to/checkpoint>,
+    vocoder_model_class=MelGAN,
+    vocoder_config_path=<path/to/vocoder/config>,
+    vocoder_checkpoint_path=<path/to/vocoder/checkpoint>
 )
 outputs = syn.tts(text="Hello world! This is a test sentence.")
 scipy.io.wavfile.write('pred_sig.wav', outputs["sampling_rate"], outputs["waveform"])
