@@ -4,13 +4,13 @@ from math import sqrt
 import torch
 from torch import nn
 from torch.nn import functional as F
-from typing import Callable, List, Dict, Optional, Union, Any
-from core.trainer.wandb_logger import WandbLogger
-from models import BaseModel
+from typing import Callable, List, Dict, Optional, Union
 
 from utils.plotting import saveplot_gate, saveplot_mel, saveplot_alignment
-from configs import TextConfig, AudioConfig, TrainerConfig, BaseConfig
+from configs import TextConfig, AudioConfig, BaseConfig
 from configs.models import Tacotron2Config
+from core.trainer.wandb_logger import WandbLogger
+from models import BaseModel
 from models.tts import TTSModel
 from models.generic import LinearNorm, ConvNorm
 
@@ -491,10 +491,9 @@ class Tacotron2(TTSModel):
             mel_outputs_postnet = mel_outputs + mel_outputs_postnet # [1, n_mels, n_frames]
 
         outputs = {
-            "mel_outputs": mel_outputs, # [1, n_mels, n_frames]
-            "mel_outputs_postnet": mel_outputs_postnet, # [1, n_mels, n_frames]
-            "gate_outputs": gate_outputs, # [1, n_frames]
-            "alignments": alignments, # [1, n_frames, n_tok]
+            "mel": mel_outputs_postnet, # [1, n_mels, n_frames]
+            "gate": gate_outputs, # [1, n_frames]
+            "alignment": alignments, # [1, n_frames, n_tok]
         }
         return outputs
     

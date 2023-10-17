@@ -157,6 +157,7 @@ class Trainer:
             print(self.model)
             print_parameter_count(self.model)
 
+        # NOTE: add optimizations based on model used
         # torch.backends.cudnn.enabled = True # speeds up Conv, RNN layers (see dev_log ### 23-04-23)
         # torch.backends.cudnn.benckmark = True # use only if input size is consistent
 
@@ -168,6 +169,7 @@ class Trainer:
         log_print(f"eval_batch_size: {self.config.eval_batch_size}")
         self.model.eval()
         start_valid = time.time()
+        # NOTE: should update to a better logic for single batch eval
         # chose a random batch from eval_dataloader
         batch_ind = random.randrange(0, len(self.eval_dataloader))
         for ind, batch in enumerate(self.eval_dataloader):
@@ -259,8 +261,8 @@ class Trainer:
     def run(self):
         self._pre_run_setup()
 
-        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
         print()
+        center_print(f"TRAINING START ({current_formatted_time()})", space_factor=0.35)
         print(f"Model: {self.model.model_name}")
         print(f"Project: {self.config.project_name}")
         print(f"Experiment: {self.config.experiment_id}")

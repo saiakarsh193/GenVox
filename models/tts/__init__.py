@@ -2,9 +2,9 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Tuple
 
-from configs import AudioConfig, BaseConfig, TextConfig, TrainerConfig
+from configs import AudioConfig, BaseConfig, TextConfig
 from models import BaseModel, _DATASET_SPLIT_TYPE
 
 class TextMelDataset(torch.utils.data.Dataset):

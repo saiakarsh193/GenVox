@@ -96,8 +96,6 @@ class MelGANConfig(BaseConfig):
         max_frames: int = 200,
         feat_match: float = 10.0,
         learning_rate: float = 1e-4,
-        weight_decay: float = 0,
-        grad_clip_thresh: float = 1.0,
         beta1: float = 0.5,
         beta2: float = 0.9
     ):
@@ -106,8 +104,6 @@ class MelGANConfig(BaseConfig):
         self.feat_match = feat_match
         # optimizer
         self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
-        self.grad_clip_thresh = grad_clip_thresh
         self.beta1 = beta1
         self.beta2 = beta2
 
@@ -115,7 +111,5 @@ class MelGANConfig(BaseConfig):
         check_argument("max_frames", self.max_frames, min_val=100)
         check_argument("feat_match", self.feat_match, min_val=1)
         check_argument("learning_rate", self.learning_rate, min_val=1e-5)
-        check_argument("weight_decay", self.weight_decay, min_val=0)
-        check_argument("grad_clip_thresh", self.grad_clip_thresh, min_val=0)
         check_argument("beta1", self.beta1, min_val=0, max_val=1)
         check_argument("beta2", self.beta2, min_val=0, max_val=1)

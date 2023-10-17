@@ -1,6 +1,4 @@
-import torch
 from torch import nn
-from typing import Optional
 
 class LinearNorm(nn.Module):
     def __init__(
@@ -27,15 +25,13 @@ class ConvNorm(nn.Module):
             out_channels: int,
             kernel_size: int = 1,
             stride: int = 1,
-            padding: Optional[int] = None,
+            padding: int = 0,
             dilation: int = 1,
+            groups: int = 1,
             bias: bool = True,
             w_init_gain: str = "linear"
         ):
         super().__init__()
-        if padding is None:
-            assert(kernel_size % 2 == 1)
-            padding = int(dilation * (kernel_size - 1) / 2)
         self.conv = nn.Conv1d(
             in_channels,
             out_channels,
@@ -43,6 +39,7 @@ class ConvNorm(nn.Module):
             stride=stride,
             padding=padding,
             dilation=dilation,
+            groups=groups,
             bias=bias
         )
         nn.init.xavier_uniform_(
@@ -52,3 +49,37 @@ class ConvNorm(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+class ConvTransposeNorm(nn.Module):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            kernel_size: int = 1,
+            stride: int = 1,
+            padding: int = 0,
+            output_padding: int = 0,
+            dilation: int = 1,
+            groups: int = 1,
+            bias: bool = True,
+            w_init_gain: str = "linear"
+        ):
+        super().__init__()
+        self.convT = nn.ConvTranspose1d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            output_padding=output_padding,
+            dilation=dilation,
+            groups=groups,
+            bias=bias
+        )
+        nn.init.xavier_uniform_(
+            self.convT.weight,
+            gain=nn.init.calculate_gain(w_init_gain)
+        )
+
+    def forward(self, x):
+        return self.convT(x)

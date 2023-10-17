@@ -158,7 +158,7 @@ class DataPreprocessor:
                     self.audio_processor.format_audio2wav(temp_wav_path, wav_path)
                     os.remove(temp_wav_path)
                 else: # else just process it directly
-                    self.audio_processor.format(sample["audio_path"], wav_path)
+                    self.audio_processor.format_audio2wav(sample["audio_path"], wav_path)
                 # extract features from the processed audio
                 feature_path = os.path.join(self.feature_dump_dir, sample["unique_id"] + ".npy")
                 self.audio_processor.convert_wav2mel(wav_path, feature_path)
