@@ -269,7 +269,7 @@ class MelGAN(VocoderModel):
                 wandb_logger.Image(self.eval_outputs["wav_gt"], caption='wav target'),
                 wandb_logger.Image(self.eval_outputs["wav_pred"], caption='wav predicted')
             ],
-            "mel": wandb_logger.Image(self.loss_outputs["mel_gt"], caption='mel target'),
+            "mel": wandb_logger.Image(self.eval_outputs["mel_gt"], caption='mel target'),
         })
         return eval_logs
     

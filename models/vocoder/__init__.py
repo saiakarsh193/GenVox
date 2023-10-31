@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 
 from configs import AudioConfig, BaseConfig
 from models import BaseModel, _DATASET_SPLIT_TYPE
+from utils.audio import normalize_signal
 
 class WavMelDataset(torch.utils.data.Dataset):
     def __init__(self, audio_config: AudioConfig, max_frames: int = 300, dataset_split_type: _DATASET_SPLIT_TYPE = "train", dump_dir: str = "dump"):
@@ -21,6 +22,7 @@ class WavMelDataset(torch.utils.data.Dataset):
     def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
         unique_id, audio_path, feature_path, tokens_ind = self.raw_data[index].strip().split("|")
         fs, wav = scipy.io.wavfile.read(audio_path)
+        wav = normalize_signal(wav)
         feats = np.load(feature_path)
         if (feats.shape[1] < self.max_frames): # pad zeros to get the max_frames and max_wav_len shape
             frames_pad = self.max_frames - feats.shape[1]
