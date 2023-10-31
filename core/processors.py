@@ -5,6 +5,7 @@ import random
 import scipy.io
 import numpy as np
 import g2p_en
+from joblib import Parallel, delayed
 from typing import List, Dict, Callable, Set, Union, Tuple
 
 from configs import TextConfig, AudioConfig
@@ -108,6 +109,7 @@ class DataPreprocessor:
             audio_config: AudioConfig,
             eval_split: Union[int, float] = 0.1,
             dump_dir: str = "dump",
+            n_jobs: int = -1,
         ):
         self.data: List[Dict] = []
         for dataset in datasets:
@@ -118,6 +120,7 @@ class DataPreprocessor:
         self.text_processor = TextProcessor(self.text_config)
         self.audio_processor = AudioProcessor(self.audio_config)
         self.eval_split = eval_split
+        self.n_jobs = n_jobs
 
         self.dump_dir = dump_dir
         self.wav_dump_dir = os.path.join(self.dump_dir, "wavs")
@@ -129,14 +132,24 @@ class DataPreprocessor:
             self.text_config.token_map = load_json(os.path.join(self.dump_dir, "token_list.json"))
             self.text_config.n_tokens = len(self.text_config.token_map)
 
-    def _filter_and_format_data(self) -> None:
+    def _format_audio(self, sample: Dict) -> None:
+        wav_path = os.path.join(self.wav_dump_dir, sample["unique_id"] + ".wav")
+        self.audio_processor.format_audio2wav(sample["audio_path"], wav_path)
+        if self.audio_config.trim_silence: # if trim, remove intermediate trimmed file
+            os.remove(sample["audio_path"])
+        sample["audio_path"] = wav_path
+
+    def _extract_features(self, sample: Dict) -> None:
+        feature_path = os.path.join(self.feature_dump_dir, sample["unique_id"] + ".npy")
+        self.audio_processor.convert_wav2mel(sample["audio_path"], feature_path)
+        sample["feature_path"] = feature_path
+
+    def _process_data(self) -> None:
         valid_data: List[Dict] = []
+
+        print(f"filtering and trimming audio")
         total_length = 0
         valid_length = 0
-        # filtering data by trimming silence and checking length
-        # and then processing audio, extracting features and tokenizing text
-        # and writing all of them to the dump directories
-        print(f"filtering and formatting data (this step will take time)")
         for sample in tqdm.tqdm(self.data): # sample: {"text", "audio_path", "unique_id"}
             fs, wav = scipy.io.wavfile.read(sample["audio_path"])
             total_length += wav.shape[0] / fs
@@ -149,29 +162,23 @@ class DataPreprocessor:
                 wav_len: float = (right_ind - left_ind) / fs
             else: # else keep wav_len original
                 wav_len: float = wav.shape[0] / fs
-            if (self.audio_config.min_wav_duration <= wav_len and wav_len <= self.audio_config.max_wav_duration): # only if wav_len is in the desired range
+            # only if wav_len is in the desired range
+            if (self.audio_config.min_wav_duration <= wav_len and wav_len <= self.audio_config.max_wav_duration):
                 valid_length += wav_len
-                wav_path = os.path.join(self.wav_dump_dir, sample["unique_id"] + ".wav")
-                if (self.audio_config.trim_silence): # if trim, first write trimmed audio then process it and remove intermediate file
-                    temp_wav_path = wav_path + "_"
-                    scipy.io.wavfile.write(temp_wav_path, fs, wav[left_ind: right_ind])
-                    self.audio_processor.format_audio2wav(temp_wav_path, wav_path)
-                    os.remove(temp_wav_path)
-                else: # else just process it directly
-                    self.audio_processor.format_audio2wav(sample["audio_path"], wav_path)
-                # extract features from the processed audio
-                feature_path = os.path.join(self.feature_dump_dir, sample["unique_id"] + ".npy")
-                self.audio_processor.convert_wav2mel(wav_path, feature_path)
+                audio_path = sample["audio_path"]
+                # if trim, write trimmed audio and use that instead of original audio
+                if self.audio_config.trim_silence:
+                    trimmed_audio_path = os.path.join(self.wav_dump_dir, sample["unique_id"] + "_trimmed.wav")
+                    scipy.io.wavfile.write(trimmed_audio_path, fs, wav[left_ind: right_ind])
+                    audio_path = trimmed_audio_path
                 # tokenize text
                 tokens = self.text_processor.tokenize(sample["text"])
                 valid_data.append({
                     "unique_id": sample["unique_id"],
-                    "audio_path": wav_path,
-                    "feature_path": feature_path,
+                    "audio_path": audio_path,
                     "tokens": tokens
                 })
-
-        print("trimmed and removed long and short wav files -> before: {bf_cnt} ({bf_len}), after: {af_cnt} ({af_len}), removed: {rm_cnt} ({rm_len})".format(
+        print("filtering done -> before: {bf_cnt} ({bf_len}), after: {af_cnt} ({af_len}), removed: {rm_cnt} ({rm_len})".format(
             bf_cnt=len(self.data),
             bf_len=sec_to_formatted_time(total_length),
             af_cnt=len(valid_data),
@@ -179,6 +186,12 @@ class DataPreprocessor:
             rm_cnt=len(self.data) - len(valid_data),
             rm_len=sec_to_formatted_time(total_length - valid_length)
         ))
+        
+        print(f"formatting audio (this step will take time)")
+        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self._format_audio)(sample) for sample in tqdm.tqdm(valid_data))
+
+        print(f"extracting features from audio")
+        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self._extract_features)(sample) for sample in tqdm.tqdm(valid_data))
 
         print(f"tokenized text -> token vocabulary size: {len(self.text_processor.all_unique_tokens)}")
         token_map = self.text_processor.generate_token_map()
@@ -197,7 +210,7 @@ class DataPreprocessor:
         os.mkdir(self.wav_dump_dir)
         os.mkdir(self.feature_dump_dir)
 
-        self._filter_and_format_data()
+        self._process_data()
 
         if type(self.eval_split) == int: # count of eval samples
             eval_samples_count = self.eval_split
