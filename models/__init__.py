@@ -4,14 +4,19 @@ from torch import nn
 from torch.utils.data import DataLoader
 from typing import Literal, Dict, Callable, Union, List, Tuple, Optional
 
+from configs import BaseConfig, AudioConfig
+
 _DATASET_SPLIT_TYPE = Literal[
     "train",
     "eval"   
 ]
 
 class BaseModel(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, model_config: BaseConfig, audio_config: AudioConfig) -> None:
         super().__init__()
+        self.model_name = self.__class__.__name__
+        self.model_config = model_config
+        self.audio_config = audio_config
 
     def get_train_dataloader(self, dump_dir: str, num_loader_workers: int, batch_size: int) -> DataLoader:
         raise NotImplementedError

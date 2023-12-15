@@ -62,10 +62,7 @@ class WavMelCollateFn:
 
 class VocoderModel(BaseModel):
     def __init__(self, model_config: BaseConfig, audio_config: AudioConfig) -> None:
-        super().__init__()
-        self.model_name = self.__class__.__name__
-        self.model_config = model_config
-        self.audio_config = audio_config
+        super().__init__(model_config=model_config, audio_config=audio_config)
 
     def get_train_dataloader(self, dump_dir: str, num_loader_workers: int, batch_size: int) -> DataLoader:
         return DataLoader(

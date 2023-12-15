@@ -171,10 +171,9 @@ class Trainer:
         start_valid = time.time()
         # NOTE: should update to a better logic for single batch eval
         # chose a random batch from eval_dataloader
-        batch_ind = random.randrange(0, len(self.eval_dataloader))
-        for ind, batch in enumerate(self.eval_dataloader):
-            if ind == batch_ind:
-                break
+        if not hasattr(self, "_eval_dataloader_data"):
+            self._eval_dataloader_data = list(self.eval_dataloader)
+        batch = random.choice(self._eval_dataloader_data)
         batch = self.model.prepare_batch(batch, device=self.device)
         self.model.eval_step(
             batch=batch,
