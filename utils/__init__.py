@@ -20,7 +20,8 @@ def download_wav_from_youtube(link: str, target: str, verbose: bool = False) -> 
         }],
         'quiet': 'verbose' if verbose else 'quiet',
         'outtmpl': target,
-        'writesubtitles' : target,
+        'writesubtitles' : True,
+        'writeautomaticsub' : True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([link])

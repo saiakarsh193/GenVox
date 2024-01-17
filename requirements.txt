@@ -3,6 +3,7 @@ scipy
 torch
 tqdm
 yt_dlp
+webvtt-py
 matplotlib
 inflect
 wandb
