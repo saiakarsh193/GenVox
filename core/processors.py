@@ -6,7 +6,7 @@ import scipy.io
 import numpy as np
 import g2p_en
 from joblib import Parallel, delayed
-from typing import List, Dict, Callable, Set, Union, Tuple
+from typing import List, Dict, Callable, Set, Union, Tuple, Optional
 
 from configs import TextConfig, AudioConfig
 from utils import get_non_silent_boundary, sec_to_formatted_time, dump_json, load_json
@@ -79,7 +79,7 @@ class AudioProcessor:
         mel_db = amplitude_to_db(mel_spectrogram, log_func=self.config.log_func, ref=self.config.ref_level_db, power=False, scale=1)
         np.save(output_path, mel_db)
 
-    def convert_mel2wav(self, mel: Union[np.ndarray, str]) -> Tuple[int, np.ndarray]:
+    def convert_mel2wav(self, mel: Union[np.ndarray, str], path: Optional[str] = None) -> Tuple[int, np.ndarray]:
         """convert a mel spectrogram to waveform"""
         if isinstance(mel, str):
             mel_db = np.load(mel)
@@ -94,6 +94,8 @@ class AudioProcessor:
         signal = signal[500: -500]
         signal = normalize_signal(signal)
         signal = reduce_noise(signal, self.config.sampling_rate)
+        if path != None:
+            scipy.io.wavfile.write(path, self.config.sampling_rate, signal)
         return self.config.sampling_rate, signal
 
 

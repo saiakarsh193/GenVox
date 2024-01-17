@@ -29,6 +29,9 @@ class WandbLogger:
     def Image(self, img, caption=""):
         return wandb.Image(img, caption=caption)
 
+    def Audio(self, audio, caption=""):
+        return wandb.Audio(audio, caption=caption)
+
     def log(self, values: Dict[str, Any], iteration: int, commit: bool = False):
         wandb.log(values, step=iteration, commit=commit)
 

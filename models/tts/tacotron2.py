@@ -10,6 +10,7 @@ from utils.plotting import saveplot_gate, saveplot_mel, saveplot_alignment
 from configs import TextConfig, AudioConfig, BaseConfig
 from configs.models import Tacotron2Config
 from core.trainer.wandb_logger import WandbLogger
+from core.processors import AudioProcessor
 from models import BaseModel
 from models.tts import TTSModel
 from models.generic import LinearNorm, ConvNorm
@@ -417,6 +418,7 @@ class Tacotron2(TTSModel):
     def __init__(self, model_config: Tacotron2Config, audio_config: AudioConfig, text_config: TextConfig) -> None:
         super().__init__(model_config, audio_config, text_config)
         self.model_config: Tacotron2Config = self.model_config # for typing hints
+        self.audio_processor = AudioProcessor(self.audio_config)
         self.embedding = nn.Embedding(self.text_config.n_tokens, self.model_config.symbols_embedding_dim)
         std = sqrt(2.0 / (self.embedding.num_embeddings + self.embedding.embedding_dim))
         val = sqrt(3.0) * std  # uniform bounds for std
@@ -539,11 +541,13 @@ class Tacotron2(TTSModel):
         saveplot_mel(mel_pred, os.path.join(eval_outdir, "mel_pred.png"))
         saveplot_gate(gate_gt, gate_pred, os.path.join(eval_outdir, "gate.png"), plot_both=True)
         saveplot_alignment(alignments, os.path.join(eval_outdir, "alignments.png"))
+        self.audio_processor.convert_mel2wav(mel=mel_pred, path=os.path.join(eval_outdir, "audio.wav"))
         self.loss_outputs = {
             "mel_tar": os.path.join(eval_outdir, "mel_tar.png"),
             "mel_pred": os.path.join(eval_outdir, "mel_pred.png"),
             "gate": os.path.join(eval_outdir, "gate.png"),
             "alignments": os.path.join(eval_outdir, "alignments.png"),
+            "audio": os.path.join(eval_outdir, "audio.wav")
         }
 
     def get_eval_priority(self) -> float:
@@ -566,7 +570,8 @@ class Tacotron2(TTSModel):
                 wandb_logger.Image(self.loss_outputs["mel_pred"], caption='mel predicted')
             ],
             "gate": wandb_logger.Image(self.loss_outputs["gate"], caption='gate'),
-            "alignments": wandb_logger.Image(self.loss_outputs["alignments"], caption='alignments')
+            "alignments": wandb_logger.Image(self.loss_outputs["alignments"], caption='alignments'),
+            "audio": wandb_logger.Audio(self.loss_outputs["audio"], caption='generated audio')
         })
         return eval_logs
 
