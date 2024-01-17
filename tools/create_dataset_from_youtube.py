@@ -128,27 +128,17 @@ def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str
     print("NOTE: the quality of the dataset depends on the transcript downloaded from youtube, so check the dataset before using")
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description="download and create annotated dataset from youtube videos")
-    # parser.add_argument("link", type=str, help="link to youtube video")
-    # parser.add_argument("output_dir", type=str, help="path of directory to store the dataset")
-    # parser.add_argument("--speaker_id", "-sid", type=str, help="speaker id prefix for storing dataset", default="SPK")
-    # parser.add_argument("--cache_dir", type=str, help="path of directory to download the data into", default=get_random_HEX_name())
-    # parser.add_argument("--remove_cache", help="flag for removing cache dir", action="store_true")
-    # parser.add_argument("--verbose", help="print will be more verbose", action="store_true")
-    # args = parser.parse_args()
-    # createDatasetFromYoutube(
-    #     link=args.link,
-    #     output_path=args.output_dir,
-    #     cache_path=args.cache_dir,
-    #     remove_cache=args.remove_cache,
-    #     speaker_id=args.speaker_id,
-    #     verbose=args.verbose
-    # )
+    parser = argparse.ArgumentParser(description="download and create annotated dataset from youtube videos")
+    parser.add_argument("link", type=str, help="link to youtube video")
+    parser.add_argument("output_dir", type=str, help="path of directory to store the dataset")
+    parser.add_argument("--speaker_id", "-sid", type=str, help="speaker id prefix for storing dataset", default="SPK")
+    parser.add_argument("--remove_cache", help="flag for removing cache dir", action="store_true")
+    parser.add_argument("--verbose", help="print will be more verbose", action="store_true")
+    args = parser.parse_args()
     createDatasetFromYoutube(
-        links=[
-            "https://www.youtube.com/watch?v=d6Pcp944sRI&t",
-            "https://www.youtube.com/watch?v=CglNRNrMFGM"   
-        ],
-        output_path="temp-db",
-        speaker_id="GG",
+        links=[args.link],
+        output_path=args.output_dir,
+        speaker_id=args.speaker_id,
+        remove_cache=args.remove_cache,
+        verbose=args.verbose
     )
