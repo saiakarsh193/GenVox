@@ -10,7 +10,7 @@ from hashlib import sha256
 import numpy as np
 from typing import Tuple, List
 
-from utils import get_random_HEX_name, download_wav_from_youtube, is_youtube_link, get_non_silent_boundary
+from utils import dump_json, download_wav_from_youtube, is_youtube_link, get_non_silent_boundary
 
 def timestamp_to_seconds(timestamp: str) -> float:
     hour, minute, seconds = timestamp.split(":")
@@ -75,15 +75,16 @@ def chunk_audio(wav: np.ndarray, fs: int, transcript: List[Tuple[float, float, s
         ind += 1
     return data
 
-def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str, remove_cache: bool = True, verbose: bool = True) -> None:
+def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str, remove_cache: bool = False, verbose: bool = True) -> None:
     assert not os.path.isdir(output_path), f"output_path ({output_path}) already exists"
     os.mkdir(output_path)
-    cache_path = os.path.join(output_path, get_random_HEX_name())
+    cache_path = os.path.join(output_path, ".cache")
     os.mkdir(cache_path)
     link_path = {}
     for link in links:
         assert is_youtube_link(link=link), f"given link ({link}) is not a youtube link"
         link_path[link] = sha256(link.encode('utf-8')).hexdigest()[:15]
+    dump_json(os.path.join(cache_path, "link_path_map.json"), link_path)
     print(f"downloading youtube data to {cache_path} directory")
     link_data = {}
     total_samples = 0
@@ -102,7 +103,6 @@ def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str
         transcript = trim_silence_and_update_transcript(wav, fs, transcript)
         link_data[link] = (wav, fs, transcript)
         total_samples += len(transcript)
-        print(len(transcript))
     wav_output_path = os.path.join(output_path, "wavs")
     os.mkdir(wav_output_path)
     index_pad = len(str(total_samples))
@@ -129,14 +129,14 @@ def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="download and create annotated dataset from youtube videos")
-    parser.add_argument("link", type=str, help="link to youtube video")
-    parser.add_argument("output_dir", type=str, help="path of directory to store the dataset")
+    parser.add_argument("-l", "--link", type=str, help="link to youtube video", required=True, action="append")
+    parser.add_argument("-o", "--output_dir", type=str, help="path of directory to store the dataset", required=True)
     parser.add_argument("--speaker_id", "-sid", type=str, help="speaker id prefix for storing dataset", default="SPK")
     parser.add_argument("--remove_cache", help="flag for removing cache dir", action="store_true")
     parser.add_argument("--verbose", help="print will be more verbose", action="store_true")
     args = parser.parse_args()
     createDatasetFromYoutube(
-        links=[args.link],
+        links=args.link,
         output_path=args.output_dir,
         speaker_id=args.speaker_id,
         remove_cache=args.remove_cache,
