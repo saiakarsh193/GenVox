@@ -89,6 +89,7 @@ def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str
     link_data = {}
     total_samples = 0
     for link in links:
+        print(f"downloading {link}")
         download_wav_from_youtube(
             link=link,
             target=os.path.join(cache_path, link_path[link]),
@@ -100,6 +101,7 @@ def createDatasetFromYoutube(links: List[str], output_path: str, speaker_id: str
         transcript = process_vtt(path=vtt_path)
         transcript = process_transcript(transcript)
         fs, wav = scipy.io.wavfile.read(wav_path)
+        print(f"length: {wav.shape[0] / fs}")
         transcript = trim_silence_and_update_transcript(wav, fs, transcript)
         link_data[link] = (wav, fs, transcript)
         total_samples += len(transcript)

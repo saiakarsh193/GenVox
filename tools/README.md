@@ -11,4 +11,7 @@ python3 tools/resample.py -i <input_dir> -o <output_dir> -fs <sampling_rate> -nj
 
 # for updating all the paths using prefix matching in a given dump file
 python3 tools/update_dump_file_paths.py -i <input_path> -po <old_prefix> -pn <new_prefix>
+
+# For dataset statistics
+python3 tools/dataset_stats.py <dataset_dir> --n_bins <number_of_bins> --threshold <length_threshold> --n_jobs <number_of_jobs>
 ```
